@@ -8,70 +8,84 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 
 class EnuColors(
-    val contentBrandPrimaryDefault: Color,
-    val surfaceDefaultLevel3: Color,
-    val contentDefaultPrimary: Color,
-    val contentDefaultInversePrimary: Color,
     val backgroundBrandPrimaryStrongDefault: Color,
     val backgroundDisabled: Color,
     val backgroundPrimaryStrongPressed: Color,
-    val backgroundSignalWarningStrongDefault: Color,
-    val contentSignalErrorDefault: Color,
     val backgroundSignalErrorMediumDefault: Color,
-    val contentSignalSuccessDefault: Color,
     val backgroundSignalSuccessMediumDefault: Color,
+    val backgroundSignalWarningMediumDefault: Color,
+    val backgroundSignalWarningStrongDefault: Color,
+    val borderDefaultMedium: Color,
+    val contentBrandPrimaryDefault: Color,
     val contentBrandPrimaryOnStrong: Color,
     val contentDefaultDisabled: Color,
-    val contentSignalSuccessOnSubtle: Color,
+    val contentDefaultInversePrimary: Color,
+    val contentDefaultPrimary: Color,
+    val contentDefaultSubtle: Color,
+    val contentSignalErrorDefault: Color,
     val contentSignalErrorOnSubtle: Color,
+    val contentSignalSuccessDefault: Color,
+    val contentSignalSuccessOnSubtle: Color,
     val contentSignalWarningOnSubtle: Color,
-    val backgroundSignalWarningMediumDefault: Color
+    val surfaceBrandPrimaryStrong: Color,
+    val surfaceDefaultBase: Color,
+    val surfaceDefaultLevel3: Color,
+
+    val backgroundNeutralMediumDefault: Color
 )
 
 val EnuLightColors = EnuColors(
-    contentBrandPrimaryDefault = BaseBrandPrimary600,
-    contentBrandPrimaryOnStrong = BaseNeutralWhite100,
-    contentDefaultPrimary = BaseNeutralBlack100,
-    contentDefaultInversePrimary = BaseNeutralWhite100,
-    surfaceDefaultLevel3 = BaseNeutralGrey100,
-
     backgroundBrandPrimaryStrongDefault = BaseBrandPrimary500,
     backgroundDisabled = BaseNeutralBlack10,
     backgroundPrimaryStrongPressed = BaseBrandPrimary700,
-    backgroundSignalWarningStrongDefault = BaseSignalWarning500,
-    contentSignalErrorDefault = BaseSignalError600,
     backgroundSignalErrorMediumDefault = BaseSignalError200,
-    contentSignalSuccessDefault = BaseSignalSuccess600,
     backgroundSignalSuccessMediumDefault = BaseSignalSuccess200,
+    backgroundSignalWarningMediumDefault = BaseSignalWarning200,
+    backgroundSignalWarningStrongDefault = BaseSignalWarning500,
+    borderDefaultMedium = BaseNeutralGrey200,
+    contentBrandPrimaryDefault = BaseBrandPrimary600,
+    contentBrandPrimaryOnStrong = BaseNeutralWhite100,
     contentDefaultDisabled = BaseNeutralGrey400,
-
-    contentSignalSuccessOnSubtle = BaseSignalSuccess800,
+    contentDefaultInversePrimary = BaseNeutralWhite100,
+    contentDefaultPrimary = BaseNeutralBlack100,
+    contentDefaultSubtle = BaseNeutralGrey600,
+    contentSignalErrorDefault = BaseSignalError600,
     contentSignalErrorOnSubtle = BaseSignalError800,
+    contentSignalSuccessDefault = BaseSignalSuccess600,
+    contentSignalSuccessOnSubtle = BaseSignalSuccess800,
     contentSignalWarningOnSubtle = BaseSignalWarning800,
-    backgroundSignalWarningMediumDefault = BaseSignalWarning200
+    surfaceDefaultBase = BaseNeutralGrey50,
+    surfaceDefaultLevel3 = BaseNeutralGrey100,
+
+    surfaceBrandPrimaryStrong = BaseBrandPrimary500,
+    backgroundNeutralMediumDefault = BaseNeutralBlack10
 )
 
 val EnuDarkColors = EnuColors(
-    contentBrandPrimaryDefault = BaseBrandPrimary600,
-    contentDefaultPrimary = BaseNeutralWhite100,
-    contentDefaultInversePrimary = BaseNeutralBlack100,
-    contentBrandPrimaryOnStrong = BaseNeutralWhite100,
-    surfaceDefaultLevel3 = BaseNeutralGrey700,
-
     backgroundBrandPrimaryStrongDefault = BaseBrandPrimary500,
     backgroundDisabled = BaseNeutralWhite10,
     backgroundPrimaryStrongPressed = BaseBrandPrimary300,
-    backgroundSignalWarningStrongDefault = BaseSignalWarning500,
-    contentSignalErrorDefault = BaseSignalError600,
     backgroundSignalErrorMediumDefault = BaseSignalError700,
-    contentSignalSuccessDefault = BaseSignalSuccess600,
     backgroundSignalSuccessMediumDefault = BaseSignalSuccess700,
+    backgroundSignalWarningMediumDefault = BaseSignalWarning700,
+    backgroundSignalWarningStrongDefault = BaseSignalWarning500,
+    borderDefaultMedium = BaseNeutralGrey200,
+    contentBrandPrimaryDefault = BaseBrandPrimary600,
+    contentBrandPrimaryOnStrong = BaseNeutralWhite100,
     contentDefaultDisabled = BaseNeutralGrey600,
-
-    contentSignalSuccessOnSubtle = BaseSignalSuccess400,
+    contentDefaultInversePrimary = BaseNeutralBlack100,
+    contentDefaultPrimary = BaseNeutralWhite100,
+    contentDefaultSubtle = BaseNeutralWhite80,
+    contentSignalErrorDefault = BaseSignalError600,
     contentSignalErrorOnSubtle = BaseSignalError400,
+    contentSignalSuccessDefault = BaseSignalSuccess600,
+    contentSignalSuccessOnSubtle = BaseSignalSuccess400,
     contentSignalWarningOnSubtle = BaseSignalWarning400,
-    backgroundSignalWarningMediumDefault = BaseSignalWarning700
+    surfaceDefaultBase = BaseNeutralGrey950,
+    surfaceDefaultLevel3 = BaseNeutralGrey700,
+
+    surfaceBrandPrimaryStrong = BaseBrandPrimary500,
+    backgroundNeutralMediumDefault = BaseNeutralWhite10
 )
 
 // provide color globally in the compose tree
