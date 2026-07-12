@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -74,7 +75,7 @@ class DetailAssetUserViewModel @Inject constructor(
 
     fun requestBorrow(returnEstimate: String) {
         viewModelScope.launch {
-            val user = getCurrentUserUseCase().firstOrNull() ?: return@launch
+            val user = getCurrentUserUseCase().filterNotNull().firstOrNull() ?: return@launch
             try {
                 requestBorrowUseCase(assetId, user.uid, returnEstimate)
             } catch (e: Exception) {

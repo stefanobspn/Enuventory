@@ -51,11 +51,39 @@ class BorrowRepositoryImpl @Inject constructor(
 
     override suspend fun requestBorrow(assetId: String, userId: String, returnEstimate: String) {
         val newDoc = borrowsCollection.document()
+
+        var assetTitle = ""
+        var assetStock = 0
+        try {
+            val assetDoc = firestore.collection("assets").document(assetId).get().await()
+            assetTitle = assetDoc.getString("title") ?: ""
+            assetStock = assetDoc.getLong("stock")?.toInt() ?: 0
+        } catch (e: Exception) {
+            // Fallback
+        }
+
+        var borrowerName = ""
+        try {
+            val userDoc = firestore.collection("users").document(userId).get().await()
+            borrowerName = userDoc.getString("name") ?: ""
+        } catch (e: Exception) {
+            // Fallback
+        }
+        if (borrowerName.isBlank() && userId == "demo-uid") {
+            borrowerName = "Demo User"
+        }
+
+        val sdf = java.text.SimpleDateFormat("dd MMM yyyy, HH:mm", java.util.Locale.getDefault())
+        val formattedBorrowDate = sdf.format(java.util.Date())
+
         val data = mapOf(
             "assetId" to assetId,
+            "assetTitle" to assetTitle,
+            "assetStock" to assetStock,
             "borrowerId" to userId,
+            "borrowerName" to borrowerName,
             "status" to BorrowStatus.Pending.name,
-            "borrowDate" to com.google.firebase.Timestamp.now(),
+            "borrowDate" to formattedBorrowDate,
             "returnEstimate" to returnEstimate
         )
         newDoc.set(data).await()
@@ -87,6 +115,36 @@ class BorrowRepositoryImpl @Inject constructor(
     private fun com.google.firebase.firestore.DocumentSnapshot.toBorrowRecord(): BorrowRecord? {
         if (!exists()) return null
         return try {
+            val rawBorrowDate = get("borrowDate")
+            val borrowDateStr = when (rawBorrowDate) {
+                is com.google.firebase.Timestamp -> {
+                    val sdf = java.text.SimpleDateFormat("dd MMM yyyy, HH:mm", java.util.Locale.getDefault())
+                    sdf.format(rawBorrowDate.toDate())
+                }
+                is String -> rawBorrowDate
+                else -> ""
+            }
+
+            val rawReturnEstimate = get("returnEstimate")
+            val returnEstimateStr = when (rawReturnEstimate) {
+                is com.google.firebase.Timestamp -> {
+                    val sdf = java.text.SimpleDateFormat("dd MMM yyyy, HH:mm", java.util.Locale.getDefault())
+                    sdf.format(rawReturnEstimate.toDate())
+                }
+                is String -> rawReturnEstimate
+                else -> ""
+            }
+
+            val rawReturnDate = get("returnDate")
+            val returnDateStr = when (rawReturnDate) {
+                is com.google.firebase.Timestamp -> {
+                    val sdf = java.text.SimpleDateFormat("dd MMM yyyy, HH:mm", java.util.Locale.getDefault())
+                    sdf.format(rawReturnDate.toDate())
+                }
+                is String -> rawReturnDate
+                else -> null
+            }
+
             BorrowRecord(
                 id = id,
                 assetId = getString("assetId") ?: return null,
@@ -95,9 +153,9 @@ class BorrowRepositoryImpl @Inject constructor(
                 borrowerId = getString("borrowerId") ?: return null,
                 borrowerName = getString("borrowerName") ?: "",
                 status = BorrowStatus.valueOf(getString("status") ?: BorrowStatus.Pending.name),
-                borrowDate = getString("borrowDate") ?: "",
-                returnEstimate = getString("returnEstimate") ?: "",
-                returnDate = getString("returnDate"),
+                borrowDate = borrowDateStr,
+                returnEstimate = returnEstimateStr,
+                returnDate = returnDateStr,
                 proofImageUrl = getString("proofImageUrl")
             )
         } catch (e: Exception) {
