@@ -113,7 +113,8 @@ fun EnuNavGraph(
                         onBottomBarClick(route)
                     },
                     onRetryClick = {},
-                    onFabClick = { navController.navigate(EnuRoute.TambahAsset) }
+                    onFabClick = { navController.navigate(EnuRoute.TambahAsset) },
+                    onAssetClick = { assetId -> navController.navigate(EnuRoute.DetailAssetAdmin(assetId)) }
                 )
             } else {
                 HomeUserPage(
@@ -129,6 +130,7 @@ fun EnuNavGraph(
                         onBottomBarClick(route)
                     },
                     onRetryClick = {},
+                    onAssetClick = { assetId -> navController.navigate(EnuRoute.DetailAsset(assetId)) },
                     isAdmin = false
                 )
             }

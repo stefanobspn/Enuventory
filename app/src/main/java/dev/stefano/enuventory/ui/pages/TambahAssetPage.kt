@@ -50,6 +50,12 @@ import dev.stefano.enuventory.ui.components.EnuTopBar
 import dev.stefano.enuventory.ui.theme.EnuTheme
 import dev.stefano.enuventory.ui.common.UiState
 import dev.stefano.enuventory.ui.common.EnuErrorState
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.foundation.Image
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -66,6 +72,29 @@ fun TambahAssetPage(
     var titleInput by remember { mutableStateOf("") }
     var stockInput by remember { mutableStateOf("") }
     var descriptionInput by remember { mutableStateOf("") }
+
+    val context = LocalContext.current
+    var imageUri by remember { mutableStateOf<android.net.Uri?>(null) }
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        imageUri = uri
+    }
+
+    val bitmap = remember(imageUri) {
+        imageUri?.let { uri ->
+            try {
+                if (android.os.Build.VERSION.SDK_INT < 28) {
+                    android.provider.MediaStore.Images.Media.getBitmap(context.contentResolver, uri)
+                } else {
+                    val source = android.graphics.ImageDecoder.createSource(context.contentResolver, uri)
+                    android.graphics.ImageDecoder.decodeBitmap(source)
+                }
+            } catch (e: Exception) {
+                null
+            }
+        }
+    }
 
     var statusInput by remember { mutableStateOf("") }
     var isStatusDropdownExpanded by remember { mutableStateOf(false) }
@@ -190,41 +219,52 @@ fun TambahAssetPage(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(200.dp)
-                        .clickable { onAddPhotoClick() }
+                        .clickable { photoPickerLauncher.launch("image/*") }
                         .drawBehind {
-                            drawRoundRect(
-                                color = borderColor,
-                                style = Stroke(
-                                    width = 1.dp.toPx(),
-                                    pathEffect = PathEffect.dashPathEffect(
-                                        intervals = floatArrayOf(10f, 10f),
-                                        phase = 0f
+                            if (bitmap == null) {
+                                drawRoundRect(
+                                    color = borderColor,
+                                    style = Stroke(
+                                        width = 1.dp.toPx(),
+                                        pathEffect = PathEffect.dashPathEffect(
+                                            intervals = floatArrayOf(10f, 10f),
+                                            phase = 0f
+                                        )
                                     )
                                 )
-                            )
+                            }
                         },
                     contentAlignment = Alignment.Center
                 ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_camera),
+                    if (bitmap != null) {
+                        Image(
+                            bitmap = bitmap.asImageBitmap(),
                             contentDescription = null,
-                            modifier = Modifier.size(24.dp),
-                            tint = EnuTheme.colors.contentDefaultPrimary
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
                         )
-                        Text(
-                            text = "Add Photo",
-                            style = EnuTheme.typography.ui.labels.normalCase.large,
-                            color = EnuTheme.colors.contentDefaultPrimary
-                        )
-                        Text(
-                            text = "optional",
-                            style = EnuTheme.typography.ui.labels.normalCase.small,
-                            color = EnuTheme.colors.contentDefaultSubtle
-                        )
+                    } else {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_camera),
+                                contentDescription = null,
+                                modifier = Modifier.size(24.dp),
+                                tint = EnuTheme.colors.contentDefaultPrimary
+                            )
+                            Text(
+                                text = "Add Photo",
+                                style = EnuTheme.typography.ui.labels.normalCase.large,
+                                color = EnuTheme.colors.contentDefaultPrimary
+                            )
+                            Text(
+                                text = "optional",
+                                style = EnuTheme.typography.ui.labels.normalCase.small,
+                                color = EnuTheme.colors.contentDefaultSubtle
+                            )
+                        }
                     }
                 }
 

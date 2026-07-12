@@ -1,5 +1,6 @@
 package dev.stefano.enuventory.ui.pages
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -50,6 +51,7 @@ fun HomeAdminPage(
     onBottomBarItemClick: (EnuBottomBarItemData) -> Unit,
     onRetryClick: () -> Unit,
     onFabClick: () -> Unit,
+    onAssetClick: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var searchQuery by remember { mutableStateOf("") }
@@ -151,7 +153,8 @@ fun HomeAdminPage(
                                     title = item.title,
                                     id = item.id,
                                     stock = item.stock,
-                                    status = item.status.toUiStatus()
+                                    status = item.status.toUiStatus(),
+                                    modifier = Modifier.clickable { onAssetClick(item.id) }
                                 )
                             }
                         }
@@ -194,7 +197,8 @@ fun HomeAdminPageNormalPreviewLight() {
             currentRoute = "home",
             onBottomBarItemClick = {},
             onRetryClick = {},
-            onFabClick = {}
+            onFabClick = {},
+            onAssetClick = {}
         )
     }
 }
@@ -208,7 +212,8 @@ fun HomeAdminPageNormalPreviewDark() {
             currentRoute = "home",
             onBottomBarItemClick = {},
             onRetryClick = {},
-            onFabClick = {}
+            onFabClick = {},
+            onAssetClick = {}
         )
     }
 }

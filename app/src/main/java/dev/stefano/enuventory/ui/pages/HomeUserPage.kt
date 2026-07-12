@@ -1,5 +1,6 @@
 package dev.stefano.enuventory.ui.pages
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -42,6 +43,7 @@ fun HomeUserPage(
     currentRoute: String?,
     onBottomBarItemClick: (EnuBottomBarItemData) -> Unit,
     onRetryClick: () -> Unit,
+    onAssetClick: (String) -> Unit,
     modifier: Modifier = Modifier,
     isAdmin: Boolean = false
 ) {
@@ -129,7 +131,8 @@ fun HomeUserPage(
                                     title = item.title,
                                     id = item.id,
                                     stock = item.stock,
-                                    status = item.status.toUiStatus()
+                                    status = item.status.toUiStatus(),
+                                    modifier = Modifier.clickable { onAssetClick(item.id) }
                                 )
                             }
                         }
@@ -171,7 +174,8 @@ fun HomeUserPageNormalPreviewLight() {
             state = UiState.Success(dummyAssets),
             currentRoute = "home",
             onBottomBarItemClick = {},
-            onRetryClick = {}
+            onRetryClick = {},
+            onAssetClick = {}
         )
     }
 }
@@ -184,7 +188,8 @@ fun HomeUserPageLoadingPreviewLight() {
             state = UiState.Loading,
             currentRoute = "home",
             onBottomBarItemClick = {},
-            onRetryClick = {}
+            onRetryClick = {},
+            onAssetClick = {}
         )
     }
 }
@@ -197,7 +202,8 @@ fun HomeUserPageErrorPreviewLight() {
             state = UiState.Error("Gagal memuat data"),
             currentRoute = "home",
             onBottomBarItemClick = {},
-            onRetryClick = {}
+            onRetryClick = {},
+            onAssetClick = {}
         )
     }
 }
@@ -210,7 +216,8 @@ fun HomeUserPageEmptyPreviewLight() {
             state = UiState.Empty,
             currentRoute = "home",
             onBottomBarItemClick = {},
-            onRetryClick = {}
+            onRetryClick = {},
+            onAssetClick = {}
         )
     }
 }
@@ -223,7 +230,8 @@ fun HomeUserPageNormalPreviewDark() {
             state = UiState.Success(dummyAssets),
             currentRoute = "home",
             onBottomBarItemClick = {},
-            onRetryClick = {}
+            onRetryClick = {},
+            onAssetClick = {}
         )
     }
 }
