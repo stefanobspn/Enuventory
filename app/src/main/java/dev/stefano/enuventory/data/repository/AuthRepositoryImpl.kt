@@ -17,14 +17,12 @@ class AuthRepositoryImpl @Inject constructor(
     private val firestore: FirebaseFirestore
 ) : AuthRepository {
 
-    private val mockUser = kotlinx.coroutines.flow.MutableStateFlow<User?>(null)
-
     override fun getCurrentUser(): Flow<User?> = callbackFlow {
         // Listener yang otomatis emit tiap kali auth state berubah (login/logout)
         val listener = FirebaseAuth.AuthStateListener { auth ->
             val firebaseUser = auth.currentUser
             if (firebaseUser == null) {
-                trySend(mockUser.value)
+                trySend(null)
             } else {
                 // Ambil role dari Firestore collection "users"
                 firestore.collection("users")
@@ -56,38 +54,17 @@ class AuthRepositoryImpl @Inject constructor(
             }
         }
 
-        // Coroutine to collect mockUser flow and emit when mockUser changes and firebaseUser is null
-        val job = launch {
-            mockUser.collect { user ->
-                if (firebaseAuth.currentUser == null) {
-                    trySend(user)
-                }
-            }
-        }
-
         firebaseAuth.addAuthStateListener(listener)
         awaitClose {
             firebaseAuth.removeAuthStateListener(listener)
-            job.cancel()
         }
     }
 
     override suspend fun signIn(email: String, password: String) {
-        if (email.endsWith("@enuventory.com")) {
-            val role = if (email.startsWith("admin")) UserRole.Admin else UserRole.RegularUser
-            mockUser.value = User(
-                uid = "demo-uid",
-                name = if (role == UserRole.Admin) "Demo Admin" else "Demo User",
-                email = email,
-                role = role
-            )
-        } else {
-            firebaseAuth.signInWithEmailAndPassword(email, password).await()
-        }
+        firebaseAuth.signInWithEmailAndPassword(email, password).await()
     }
 
     override suspend fun signOut() {
-        mockUser.value = null
         firebaseAuth.signOut()
     }
 }

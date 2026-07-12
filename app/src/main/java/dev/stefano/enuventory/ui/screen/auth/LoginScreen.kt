@@ -141,25 +141,6 @@ fun LoginScreen(
                     },
                     modifier = Modifier.fillMaxWidth()
                 )
-
-                HorizontalDivider(
-                    modifier = Modifier.padding(vertical = 8.dp),
-                    color = EnuTheme.colors.borderDefaultMedium
-                )
-
-                // Bypass/Demo Mode Button
-                EnuButton(
-                    text = "Coba Mode Demo",
-                    variant = EnuButtonVariant.Normal,
-                    onClick = {
-                        // Untuk kemudahan demo/development jika firebase belum di-setup di console
-                        // Kita bisa login menggunakan email/password dummy atau anonymous sign-in jika didukung,
-                        // atau kita trigger mock login sukses.
-                        // Di sini kita coba login menggunakan akun dummy bawaan.
-                        viewModel.signIn("demo@enuventory.com", "password123")
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                )
             }
         }
     }
