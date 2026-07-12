@@ -7,6 +7,12 @@ import javax.inject.Inject
 class RequestBorrowUseCase @Inject constructor(
     private val borrowRepository: BorrowRepository
 ) {
-    suspend operator fun invoke(assetId: String, userId: String, returnEstimate: String) =
-        borrowRepository.requestBorrow(assetId, userId, returnEstimate)
+    suspend operator fun invoke(
+        assetId: String,
+        assetTitle: String,
+        assetStock: Int,
+        userId: String,
+        userName: String,
+        returnEstimate: String
+    ) = borrowRepository.requestBorrow(assetId, assetTitle, assetStock, userId, userName, returnEstimate)
 }

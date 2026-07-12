@@ -49,39 +49,25 @@ class BorrowRepositoryImpl @Inject constructor(
         return borrowsCollection.document(recordId).get().await().toBorrowRecord()
     }
 
-    override suspend fun requestBorrow(assetId: String, userId: String, returnEstimate: String) {
+    override suspend fun requestBorrow(
+        assetId: String,
+        assetTitle: String,
+        assetStock: Int,
+        userId: String,
+        userName: String,
+        returnEstimate: String
+    ) {
         val newDoc = borrowsCollection.document()
-
-        var assetTitle = ""
-        var assetStock = 0
-        try {
-            val assetDoc = firestore.collection("assets").document(assetId).get().await()
-            assetTitle = assetDoc.getString("title") ?: ""
-            assetStock = assetDoc.getLong("stock")?.toInt() ?: 0
-        } catch (e: Exception) {
-            // Fallback
-        }
-
-        var borrowerName = ""
-        try {
-            val userDoc = firestore.collection("users").document(userId).get().await()
-            borrowerName = userDoc.getString("name") ?: ""
-        } catch (e: Exception) {
-            // Fallback
-        }
-        if (borrowerName.isBlank() && userId == "demo-uid") {
-            borrowerName = "Demo User"
-        }
-
         val sdf = java.text.SimpleDateFormat("dd MMM yyyy, HH:mm", java.util.Locale.getDefault())
         val formattedBorrowDate = sdf.format(java.util.Date())
 
         val data = mapOf(
+            "id" to newDoc.id,
             "assetId" to assetId,
             "assetTitle" to assetTitle,
             "assetStock" to assetStock,
             "borrowerId" to userId,
-            "borrowerName" to borrowerName,
+            "borrowerName" to userName,
             "status" to BorrowStatus.Pending.name,
             "borrowDate" to formattedBorrowDate,
             "returnEstimate" to returnEstimate

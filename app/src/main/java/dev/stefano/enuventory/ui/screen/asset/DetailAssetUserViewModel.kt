@@ -83,8 +83,22 @@ class DetailAssetUserViewModel @Inject constructor(
                 android.util.Log.e("DetailAssetUser", "User is null!")
                 return@launch
             }
+
+            val successState = uiState.value as? UiState.Success ?: run {
+                android.util.Log.e("DetailAssetUser", "UiState is not Success, current state is: ${uiState.value}")
+                return@launch
+            }
+            val asset = successState.data.asset
+
             try {
-                requestBorrowUseCase(assetId, user.uid, returnEstimate)
+                requestBorrowUseCase(
+                    assetId = assetId,
+                    assetTitle = asset.title,
+                    assetStock = asset.stock,
+                    userId = user.uid,
+                    userName = user.name,
+                    returnEstimate = returnEstimate
+                )
                 android.util.Log.d("DetailAssetUser", "requestBorrowUseCase completed successfully")
             } catch (e: Exception) {
                 android.util.Log.e("DetailAssetUser", "Gagal pinjam: ${e.message}", e)

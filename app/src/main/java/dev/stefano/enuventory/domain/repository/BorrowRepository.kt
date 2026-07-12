@@ -29,7 +29,14 @@ interface BorrowRepository {
     suspend fun getBorrowRecordById(recordId: String): BorrowRecord?
 
     /** User mengajukan request peminjaman asset. */
-    suspend fun requestBorrow(assetId: String, userId: String, returnEstimate: String)
+    suspend fun requestBorrow(
+        assetId: String,
+        assetTitle: String,
+        assetStock: Int,
+        userId: String,
+        userName: String,
+        returnEstimate: String
+    )
 
     /** Admin menyetujui request peminjaman. */
     suspend fun approveRequest(recordId: String)
