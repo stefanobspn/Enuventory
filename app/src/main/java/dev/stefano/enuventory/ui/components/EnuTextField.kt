@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -43,7 +44,8 @@ fun EnuTextField(
     onTrailingIconClick: (() -> Unit)? = null,
     readOnly: Boolean = false,
     onClick: (() -> Unit)? = null,
-    keyboardOptions: KeyboardOptions = KeyboardOptions.Default
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    visualTransformation: VisualTransformation = VisualTransformation.None
 ) {
     // Dipakai buat field readOnly yang perannya cuma nampilin nilai & buka picker lain
     // (mis. DatePicker) saat di-tap -- OutlinedTextField readOnly tetap butuh interactionSource
@@ -82,6 +84,7 @@ fun EnuTextField(
             readOnly = readOnly,
             interactionSource = tapInteractionSource,
             keyboardOptions = keyboardOptions,
+            visualTransformation = visualTransformation,
             textStyle = EnuTheme.typography.ui.labels.normalCase.base.copy(
                 color = EnuTheme.colors.contentDefaultPrimary
             ),

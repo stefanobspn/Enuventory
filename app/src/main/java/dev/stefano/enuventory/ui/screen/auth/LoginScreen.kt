@@ -26,6 +26,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.stefano.enuventory.R
@@ -42,6 +46,7 @@ fun LoginScreen(
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var passwordVisible by remember { mutableStateOf(false) }
 
     val signInState by viewModel.signInState.collectAsStateWithLifecycle()
     val currentUser by viewModel.currentUser.collectAsStateWithLifecycle()
@@ -107,15 +112,17 @@ fun LoginScreen(
                 )
 
                 // Input Password
-                // Catatan: Karena EnuTextField bawaan belum mendukung VisualTransformation secara parameter langsung,
-                // kita bisa memodifikasinya jika diperlukan, atau sementara pakai standard text input untuk password.
                 EnuTextField(
                     value = password,
                     onValueChange = { password = it },
                     placeholder = "Masukkan password anda",
                     label = "Password",
                     isRequired = true,
-                    leadingIcon = R.drawable.ic_lock// menggunakan icon gear sebagai penanda
+                    leadingIcon = R.drawable.ic_lock,
+                    trailingIcon = if (passwordVisible) R.drawable.ic_opened_eye else R.drawable.ic_closed_eye,
+                    onTrailingIconClick = { passwordVisible = !passwordVisible },
+                    visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
                 )
 
                 // Error Message jika ada
