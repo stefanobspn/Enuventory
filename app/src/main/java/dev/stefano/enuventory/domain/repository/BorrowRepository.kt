@@ -18,9 +18,15 @@ interface BorrowRepository {
 
     /**
      * Mengambil semua record peminjaman yang statusnya Pending.
-     * Dipakai di Approval page (admin melihat request yang perlu disetujui).
+     * Dipakai di notifikasi admin.
      */
     fun getPendingRequests(): Flow<List<BorrowRecord>>
+
+    /**
+     * Mengambil seluruh record peminjaman (semua status).
+     * Dipakai di Approval page (tab Pending / Aktif / Selesai).
+     */
+    fun getAllBorrowRecords(): Flow<List<BorrowRecord>>
 
     /**
      * Mengambil satu record berdasarkan ID-nya.
@@ -28,22 +34,38 @@ interface BorrowRepository {
      */
     suspend fun getBorrowRecordById(recordId: String): BorrowRecord?
 
-    /** User mengajukan request peminjaman asset. */
+    /** User mengajukan request peminjaman asset. Tanggal dalam epoch millis. */
     suspend fun requestBorrow(
         assetId: String,
         assetTitle: String,
-        assetStock: Int,
         userId: String,
         userName: String,
-        returnEstimate: String
+        borrowDate: Long,
+        returnEstimate: Long,
+        reason: String
     )
 
-    /** Admin menyetujui request peminjaman. */
-    suspend fun approveRequest(recordId: String)
+    /**
+     * Admin menyetujui request + menetapkan jadwal pengambilan.
+     * Status pinjam → WaitingPickup, status asset → Reserved (atomik).
+     */
+    suspend fun approveRequest(recordId: String, assetId: String, pickupSchedule: Long)
 
-    /** Admin menolak request peminjaman. */
-    suspend fun rejectRequest(recordId: String)
+    /** Admin menolak request (atau user membatalkan) dengan alasan. */
+    suspend fun rejectRequest(recordId: String, rejectionReason: String)
 
-    /** User/admin menandai asset telah dikembalikan. */
-    suspend fun returnAsset(recordId: String, proofImageUrl: String? = null)
+    /** Konfirmasi pengambilan barang (setelah scan QR cocok). Status → Borrowed. */
+    suspend fun confirmPickup(recordId: String)
+
+    /**
+     * Admin memproses pengembalian.
+     * Normal → status Completed + asset Available; rusak → Damaged + asset
+     * Maintenance (atomik).
+     */
+    suspend fun completeReturn(
+        recordId: String,
+        assetId: String,
+        isDamaged: Boolean,
+        damageNotes: String?
+    )
 }

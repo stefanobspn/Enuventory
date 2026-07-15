@@ -31,49 +31,47 @@ import java.text.SimpleDateFormat
 import java.util.Locale
 import java.util.TimeZone
 
+/**
+ * Dialog form pengajuan peminjaman: tanggal pinjam, tanggal kembali, dan alasan.
+ * Tanggal dikirim sebagai epoch millis (awal hari, timezone device).
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EnuBorrowDialog(
     onDismissRequest: () -> Unit,
-    onSubmitClick: (pesan: String, estimasi: String) -> Unit,
+    onSubmitClick: (borrowDateMillis: Long, returnEstimateMillis: Long, alasan: String) -> Unit,
     modifier: Modifier = Modifier,
     isSubmitting: Boolean = false
 ) {
-    var pesanInput by remember { mutableStateOf("") }
-    var estimasiInput by remember { mutableStateOf("") }
-    var showDatePicker by remember { mutableStateOf(false) }
+    var alasanInput by remember { mutableStateOf("") }
+    var borrowDateMillis by remember { mutableStateOf<Long?>(null) }
+    var returnDateMillis by remember { mutableStateOf<Long?>(null) }
+    var showBorrowDatePicker by remember { mutableStateOf(false) }
+    var showReturnDatePicker by remember { mutableStateOf(false) }
 
-    if (showDatePicker) {
-        val datePickerState = rememberDatePickerState(
-            selectableDates = object : SelectableDates {
-                // Estimasi kembali gak masuk akal kalau di masa lalu
-                override fun isSelectableDate(utcTimeMillis: Long): Boolean =
-                    utcTimeMillis >= startOfTodayUtcMillis()
+    if (showBorrowDatePicker) {
+        BorrowDatePickerDialog(
+            // Tanggal pinjam gak masuk akal kalau di masa lalu
+            minUtcMillis = startOfTodayUtcMillis(),
+            onDismiss = { showBorrowDatePicker = false },
+            onConfirm = { millis ->
+                borrowDateMillis = millis
+                // Tanggal kembali gak boleh sebelum tanggal pinjam — reset kalau jadi invalid
+                if (returnDateMillis?.let { it < millis } == true) returnDateMillis = null
+                showBorrowDatePicker = false
             }
         )
+    }
 
-        DatePickerDialog(
-            onDismissRequest = { showDatePicker = false },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        datePickerState.selectedDateMillis?.let { millis ->
-                            estimasiInput = formatEstimasiDate(millis)
-                        }
-                        showDatePicker = false
-                    }
-                ) {
-                    Text("OK")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) {
-                    Text("Batal")
-                }
+    if (showReturnDatePicker) {
+        BorrowDatePickerDialog(
+            minUtcMillis = borrowDateMillis ?: startOfTodayUtcMillis(),
+            onDismiss = { showReturnDatePicker = false },
+            onConfirm = { millis ->
+                returnDateMillis = millis
+                showReturnDatePicker = false
             }
-        ) {
-            DatePicker(state = datePickerState)
-        }
+        )
     }
 
     Dialog(onDismissRequest = { if (!isSubmitting) onDismissRequest() }) {
@@ -88,57 +86,57 @@ fun EnuBorrowDialog(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Row {
-                        Text(
-                            text = "Kirimkan pesan",
-                            style = EnuTheme.typography.ui.labels.normalCase.small,
-                            color = EnuTheme.colors.contentDefaultPrimary
-                        )
-                        Text(
-                            text = " *",
-                            style = EnuTheme.typography.ui.labels.normalCase.small,
-                            color = EnuTheme.colors.contentSignalErrorDefault
-                        )
-                    }
+                BorrowFieldLabel("Tanggal pinjam") {
                     EnuTextField(
-                        value = pesanInput,
-                        onValueChange = { pesanInput = it },
-                        placeholder = "Tuliskan keperluanmu disini..."
-                    )
-                }
-
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Row {
-                        Text(
-                            text = "Estimasi kembali",
-                            style = EnuTheme.typography.ui.labels.normalCase.small,
-                            color = EnuTheme.colors.contentDefaultPrimary
-                        )
-                        Text(
-                            text = " *",
-                            style = EnuTheme.typography.ui.labels.normalCase.small,
-                            color = EnuTheme.colors.contentSignalErrorDefault
-                        )
-                    }
-                    EnuTextField(
-                        value = estimasiInput,
+                        value = borrowDateMillis?.let(::formatPickedDate).orEmpty(),
                         onValueChange = {},
                         placeholder = "Pilih tanggal",
                         readOnly = true,
-                        onClick = { showDatePicker = true }
+                        onClick = { showBorrowDatePicker = true }
+                    )
+                }
+
+                BorrowFieldLabel("Tanggal kembali") {
+                    EnuTextField(
+                        value = returnDateMillis?.let(::formatPickedDate).orEmpty(),
+                        onValueChange = {},
+                        placeholder = "Pilih tanggal",
+                        readOnly = true,
+                        onClick = { showReturnDatePicker = true }
+                    )
+                }
+
+                BorrowFieldLabel("Alasan") {
+                    EnuTextField(
+                        value = alasanInput,
+                        onValueChange = { alasanInput = it },
+                        placeholder = "Tuliskan keperluanmu disini...",
+                        singleLine = false,
+                        minLines = 3
                     )
                 }
 
                 Spacer(modifier = Modifier.height(4.dp))
 
-                val buttonVariant =
-                    if (isSubmitting) EnuButtonVariant.Loading else EnuButtonVariant.Normal
+                val isFormValid = borrowDateMillis != null &&
+                        returnDateMillis != null &&
+                        alasanInput.isNotBlank()
+                val buttonVariant = when {
+                    isSubmitting -> EnuButtonVariant.Loading
+                    !isFormValid -> EnuButtonVariant.Disabled
+                    else -> EnuButtonVariant.Normal
+                }
 
                 EnuButton(
                     text = "Submit",
                     variant = buttonVariant,
-                    onClick = { onSubmitClick(pesanInput, estimasiInput) },
+                    onClick = {
+                        val borrow = borrowDateMillis ?: return@EnuButton
+                        val estimate = returnDateMillis ?: return@EnuButton
+                        if (alasanInput.isNotBlank()) {
+                            onSubmitClick(borrow, estimate, alasanInput.trim())
+                        }
+                    },
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -146,9 +144,61 @@ fun EnuBorrowDialog(
     }
 }
 
+@Composable
+private fun BorrowFieldLabel(label: String, content: @Composable () -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row {
+            Text(
+                text = label,
+                style = EnuTheme.typography.ui.labels.normalCase.small,
+                color = EnuTheme.colors.contentDefaultPrimary
+            )
+            Text(
+                text = " *",
+                style = EnuTheme.typography.ui.labels.normalCase.small,
+                color = EnuTheme.colors.contentSignalErrorDefault
+            )
+        }
+        content()
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun BorrowDatePickerDialog(
+    minUtcMillis: Long,
+    onDismiss: () -> Unit,
+    onConfirm: (Long) -> Unit
+) {
+    val datePickerState = rememberDatePickerState(
+        selectableDates = object : SelectableDates {
+            override fun isSelectableDate(utcTimeMillis: Long): Boolean =
+                utcTimeMillis >= minUtcMillis
+        }
+    )
+
+    DatePickerDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(
+                onClick = { datePickerState.selectedDateMillis?.let(onConfirm) ?: onDismiss() }
+            ) {
+                Text("OK")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Batal")
+            }
+        }
+    ) {
+        DatePicker(state = datePickerState)
+    }
+}
+
 // DatePicker mengembalikan millis UTC di awal hari tanggal terpilih -- format eksplisit
 // pakai timezone UTC di sini biar gak geser 1 hari tergantung timezone device.
-private fun formatEstimasiDate(utcMillis: Long): String {
+private fun formatPickedDate(utcMillis: Long): String {
     val formatter = SimpleDateFormat("dd MMM yyyy", Locale.getDefault()).apply {
         timeZone = TimeZone.getTimeZone("UTC")
     }

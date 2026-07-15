@@ -45,7 +45,6 @@ sealed interface EnuRoute {
     @Serializable data class DetailRequest(val recordId: String) : EnuRoute
 
     // ── Shared screens ───────────────────────────────────────────────────────
-    @Serializable data object ScanQR : EnuRoute
-    @Serializable data class UploadBuktiFoto(val recordId: String) : EnuRoute
-    @Serializable data class Pengembalian(val recordId: String) : EnuRoute
+    @Serializable
+    data class ScanQR(val recordId: String, val assetId: String) : EnuRoute
 }

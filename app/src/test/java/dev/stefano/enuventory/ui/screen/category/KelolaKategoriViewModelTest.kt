@@ -44,7 +44,6 @@ class KelolaKategoriViewModelTest {
     private fun asset(id: String, category: String) = Asset(
         id = id,
         title = "Asset $id",
-        stock = 1,
         status = AssetStatus.Available,
         category = category,
         description = ""

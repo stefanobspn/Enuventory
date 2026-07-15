@@ -34,7 +34,6 @@ class EditAssetViewModelTest {
     private val existingAsset = Asset(
         id = "HW-EXIST",
         title = "Proyektor Epson",
-        stock = 3,
         status = AssetStatus.Available,
         category = "Elektronik",
         description = "Proyektor buat presentasi",
@@ -104,7 +103,6 @@ class EditAssetViewModelTest {
 
             viewModel.editAsset(
                 title = "Proyektor Epson V2",
-                stockStr = "5",
                 statusStr = "Maintenance",
                 category = "Elektronik",
                 description = "Sudah diservis",
@@ -117,7 +115,6 @@ class EditAssetViewModelTest {
             val updated = assetRepository.updateAssetCalls.first()
             assertEquals(existingAsset.id, updated.id)
             assertEquals("Proyektor Epson V2", updated.title)
-            assertEquals(5, updated.stock)
             assertEquals(AssetStatus.Maintenance, updated.status)
         }
 
@@ -129,7 +126,6 @@ class EditAssetViewModelTest {
 
             viewModel.editAsset(
                 title = existingAsset.title,
-                stockStr = existingAsset.stock.toString(),
                 statusStr = "Tersedia",
                 category = existingAsset.category,
                 description = existingAsset.description,
@@ -151,7 +147,6 @@ class EditAssetViewModelTest {
 
             viewModel.editAsset(
                 title = existingAsset.title,
-                stockStr = existingAsset.stock.toString(),
                 statusStr = "Tersedia",
                 category = existingAsset.category,
                 description = existingAsset.description,
@@ -178,7 +173,6 @@ class EditAssetViewModelTest {
 
             viewModel.editAsset(
                 title = existingAsset.title,
-                stockStr = existingAsset.stock.toString(),
                 statusStr = "Tersedia",
                 category = existingAsset.category,
                 description = existingAsset.description,

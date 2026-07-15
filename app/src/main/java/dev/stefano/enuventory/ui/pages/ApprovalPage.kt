@@ -30,6 +30,7 @@ import dev.stefano.enuventory.ui.components.EnuHistoryCard
 import dev.stefano.enuventory.ui.components.EnuTab
 import dev.stefano.enuventory.ui.components.EnuTopBar
 import dev.stefano.enuventory.ui.theme.EnuTheme
+import dev.stefano.enuventory.ui.util.formatDate
 import dev.stefano.enuventory.ui.util.toUiStatus
 
 @Composable
@@ -42,7 +43,7 @@ fun ApprovalPage(
     modifier: Modifier = Modifier,
     isAdmin: Boolean = false
 ) {
-    val tabTitles = listOf("Aktif", "Selesai")
+    val tabTitles = listOf("Pending", "Aktif", "Selesai")
     var selectedTabIndex by remember { mutableIntStateOf(0) }
 
     Scaffold(
@@ -82,15 +83,22 @@ fun ApprovalPage(
                 is UiState.Success -> {
                     val filteredItems = remember(state.data, selectedTabIndex) {
                         state.data.filter { item ->
-                            if (selectedTabIndex == 0) {
-                                item.status == BorrowStatus.Pending
-                            } else {
-                                item.status == BorrowStatus.Completed || item.status == BorrowStatus.Rejected
+                            when (selectedTabIndex) {
+                                0 -> item.status == BorrowStatus.Pending
+                                1 -> item.status == BorrowStatus.WaitingPickup ||
+                                        item.status == BorrowStatus.Borrowed
+
+                                else -> item.isFinished
                             }
                         }
                     }
                     if (filteredItems.isEmpty()) {
-                        EnuEmptyState("Belum ada riwayat")
+                        val emptyMessage = when (selectedTabIndex) {
+                            0 -> "Tidak ada request menunggu persetujuan"
+                            1 -> "Tidak ada peminjaman aktif"
+                            else -> "Belum ada riwayat selesai"
+                        }
+                        EnuEmptyState(emptyMessage)
                     } else {
                         LazyColumn(
                             verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -100,13 +108,12 @@ fun ApprovalPage(
                                 EnuHistoryCard(
                                     title = item.assetTitle,
                                     id = item.assetId,
-                                    stock = item.assetStock,
-                                    status = item.status.toUiStatus(),
-                                    borrowDate = item.borrowDate,
+                                    status = item.toUiStatus(),
+                                    borrowDate = formatDate(item.borrowDate),
                                     returnEstimate = if (item.isFinished) {
-                                        item.returnDate ?: "-"
+                                        item.returnDate?.let(::formatDate) ?: "-"
                                     } else {
-                                        item.returnEstimate
+                                        formatDate(item.returnEstimate)
                                     },
                                     isFinished = item.isFinished,
                                     onDetailClick = { onDetailClick(item.id) }
@@ -123,7 +130,7 @@ fun ApprovalPage(
                     ) {
                         items(2) {
                             EnuHistoryCard(
-                                title = "", id = "", stock = 0,
+                                title = "", id = "",
                                 status = EnuBorrowStatus.Menunggu,
                                 borrowDate = "", returnEstimate = "",
                                 onDetailClick = {},

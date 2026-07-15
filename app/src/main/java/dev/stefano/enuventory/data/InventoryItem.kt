@@ -9,7 +9,6 @@ val dummyAssets = listOf(
     Asset(
         id = "HW-0019-A",
         title = "Arduino Micro Controller",
-        stock = 5,
         status = AssetStatus.Available,
         category = "Elektro",
         description = "Mikrokontroler serbaguna untuk prototyping."
@@ -17,15 +16,13 @@ val dummyAssets = listOf(
     Asset(
         id = "HW-0020-B",
         title = "Raspberry Pi 4 Model B",
-        stock = 2,
-        status = AssetStatus.Unavailable,
+        status = AssetStatus.Reserved,
         category = "IoT",
         description = "Single-board computer dengan RAM 4GB."
     ),
     Asset(
         id = "HW-0021-C",
         title = "Sensor Ultrasonik HC-SR04",
-        stock = 12,
         status = AssetStatus.Maintenance,
         category = "Elektro",
         description = "Sensor jarak ultrasonik dengan range 2-400cm."

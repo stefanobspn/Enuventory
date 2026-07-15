@@ -159,7 +159,6 @@ fun HomeAdminPage(
                                 EnuInventoryCard(
                                     title = item.title,
                                     id = item.id,
-                                    stock = item.stock,
                                     status = item.status.toUiStatus(),
                                     imageUrl = item.imageUrl,
                                     modifier = Modifier.clickable { onAssetClick(item.id) }
@@ -176,7 +175,7 @@ fun HomeAdminPage(
                     ) {
                         items(3) {
                             EnuInventoryCard(
-                                title = "", id = "", stock = 0,
+                                title = "", id = "",
                                 status = EnuInventoryStatus.Tersedia,
                                 isLoading = true
                             )

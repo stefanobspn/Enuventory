@@ -51,12 +51,13 @@ class AdminNotificationViewModelTest {
                         id = "r1",
                         assetId = "HW-1",
                         assetTitle = "Macbook Pro 14",
-                        assetStock = 1,
                         borrowerId = "u1",
                         borrowerName = "Budi Santoso",
                         status = BorrowStatus.Pending,
-                        borrowDate = "1 Jan",
-                        returnEstimate = "8 Jan"
+                        requestedAt = 1_792_195_200_000L,
+                        borrowDate = 1_792_195_200_000L,
+                        returnEstimate = 1_792_713_600_000L,
+                        reason = "Kebutuhan proyek"
                     )
                 )
             )

@@ -41,7 +41,6 @@ class DetailAssetUserViewModelTest {
     private val asset = Asset(
         id = "asset-1",
         title = "Proyektor Epson",
-        stock = 2,
         status = AssetStatus.Available,
         category = "Elektronik",
         description = "Proyektor buat presentasi"
@@ -115,6 +114,34 @@ class DetailAssetUserViewModelTest {
         }
 
     @Test
+    fun `waiting pickup record shows MenungguPengambilan state`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            borrowRepository.setRecords(
+                listOf(pendingRecordFor(asset, user).copy(status = BorrowStatus.WaitingPickup))
+            )
+            val viewModel = createViewModel()
+            val job = launch { viewModel.uiState.collect {} }
+
+            val state = viewModel.uiState.value as UiState.Success
+            assertEquals(DetailAssetUserState.MenungguPengambilan, state.data.relationshipState)
+
+            job.cancel()
+        }
+
+    @Test
+    fun `asset not Available without own active record shows TidakTersedia state`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            assetRepository.setAssets(listOf(asset.copy(status = AssetStatus.Reserved)))
+            val viewModel = createViewModel()
+            val job = launch { viewModel.uiState.collect {} }
+
+            val state = viewModel.uiState.value as UiState.Success
+            assertEquals(DetailAssetUserState.TidakTersedia, state.data.relationshipState)
+
+            job.cancel()
+        }
+
+    @Test
     fun `finished record (completed) does not block borrowing again - shows Normal`() =
         runTest(mainDispatcherRule.testDispatcher) {
             borrowRepository.setRecords(
@@ -172,13 +199,20 @@ class DetailAssetUserViewModelTest {
             val viewModel = createViewModel()
             val job = launch { viewModel.uiState.collect {} }
 
-            viewModel.requestBorrow(returnEstimate = "20 Jul 2026")
+            viewModel.requestBorrow(
+                borrowDate = 1_792_195_200_000L,
+                returnEstimate = 1_792_713_600_000L,
+                reason = "Kebutuhan presentasi"
+            )
 
             val records = borrowRepository.currentRecords()
             assertEquals(1, records.size)
             assertEquals(BorrowStatus.Pending, records.first().status)
             assertEquals(asset.id, records.first().assetId)
             assertEquals(user.uid, records.first().borrowerId)
+            assertEquals(1_792_195_200_000L, records.first().borrowDate)
+            assertEquals(1_792_713_600_000L, records.first().returnEstimate)
+            assertEquals("Kebutuhan presentasi", records.first().reason)
 
             job.cancel()
         }
@@ -192,7 +226,12 @@ class DetailAssetUserViewModelTest {
 
         viewModel.cancelBorrow(record.id)
 
-        assertEquals(BorrowStatus.Rejected, borrowRepository.currentRecords().first().status)
+        val cancelled = borrowRepository.currentRecords().first()
+        assertEquals(BorrowStatus.Rejected, cancelled.status)
+        assertEquals(
+            DetailAssetUserViewModel.CANCELLED_BY_BORROWER_REASON,
+            cancelled.rejectionReason
+        )
 
         job.cancel()
     }
@@ -201,11 +240,12 @@ class DetailAssetUserViewModelTest {
         id = "record-1",
         assetId = asset.id,
         assetTitle = asset.title,
-        assetStock = asset.stock,
         borrowerId = user.uid,
         borrowerName = user.name,
         status = BorrowStatus.Pending,
-        borrowDate = "14 Jul 2026, 09:00",
-        returnEstimate = "20 Jul 2026"
+        requestedAt = 1_792_195_200_000L,
+        borrowDate = 1_792_195_200_000L,
+        returnEstimate = 1_792_713_600_000L,
+        reason = "Kebutuhan presentasi"
     )
 }

@@ -32,7 +32,6 @@ import dev.stefano.enuventory.ui.util.shimmerLoading
 fun EnuInventoryCard(
     title: String,
     id: String,
-    stock: Int,
     status: EnuInventoryStatus,
     modifier: Modifier = Modifier,
     imageUrl: String? = null,
@@ -117,12 +116,6 @@ fun EnuInventoryCard(
                         style = EnuTheme.typography.ui.labels.normalCase.small,
                         color = EnuTheme.colors.contentDefaultSubtle
                     )
-                    Text(
-                        text = "Stock: $stock",
-                        style = EnuTheme.typography.ui.labels.normalCase.small,
-                        color = EnuTheme.colors.contentDefaultSubtle
-                    )
-
                     Spacer(modifier = Modifier.height(4.dp))
 
                     EnuInventoryStatusBadge(status = status)
@@ -143,7 +136,6 @@ fun EnuInventoryCardPreviewLight() {
             EnuInventoryCard(
                 title = "Arduino Micro Controller",
                 id = "HW-0019-A",
-                stock = 5,
                 status = EnuInventoryStatus.Tersedia,
                 isLoading = false
             )
@@ -151,7 +143,6 @@ fun EnuInventoryCardPreviewLight() {
             EnuInventoryCard(
                 title = "",
                 id = "",
-                stock = 0,
                 status = EnuInventoryStatus.Tersedia,
                 isLoading = true
             )
@@ -170,7 +161,6 @@ fun EnuInventoryCardPreviewDark() {
             EnuInventoryCard(
                 title = "Arduino Micro Controller",
                 id = "HW-0019-A",
-                stock = 5,
                 status = EnuInventoryStatus.Tersedia,
                 isLoading = false
             )
@@ -178,7 +168,6 @@ fun EnuInventoryCardPreviewDark() {
             EnuInventoryCard(
                 title = "",
                 id = "",
-                stock = 0,
                 status = EnuInventoryStatus.Tersedia,
                 isLoading = true
             )

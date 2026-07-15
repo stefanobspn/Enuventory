@@ -72,7 +72,6 @@ class TambahAssetViewModelTest {
 
             viewModel.addAsset(
                 title = "Proyektor Epson",
-                stockStr = "3",
                 statusStr = "Tersedia",
                 category = "Elektronik",
                 description = "Proyektor buat presentasi",
@@ -85,7 +84,6 @@ class TambahAssetViewModelTest {
             val added = assetRepository.addAssetCalls.first()
             assertTrue(Regex("^HW-[23456789ABCDEFGHJKMNPQRSTVWXYZ]{5}$").matches(added.id))
             assertEquals(AssetStatus.Available, added.status)
-            assertEquals(3, added.stock)
         }
 
     @Test
@@ -98,7 +96,6 @@ class TambahAssetViewModelTest {
 
             viewModel.addAsset(
                 title = "Solder",
-                stockStr = "1",
                 statusStr = "Tersedia",
                 category = "Perkakas",
                 description = "",
@@ -118,7 +115,6 @@ class TambahAssetViewModelTest {
 
             viewModel.addAsset(
                 title = "Solder",
-                stockStr = "1",
                 statusStr = "Tersedia",
                 category = "Perkakas",
                 description = "",
@@ -131,20 +127,18 @@ class TambahAssetViewModelTest {
         }
 
     @Test
-    fun `invalid stock input defaults to zero instead of crashing`() =
+    fun `blank category defaults to All`() =
         runTest(mainDispatcherRule.testDispatcher) {
             val viewModel = createViewModel()
 
             viewModel.addAsset(
                 title = "Asset Aneh",
-                stockStr = "bukan-angka",
                 statusStr = "Tersedia",
                 category = "",
                 description = "",
                 onSuccess = {}
             )
 
-            assertEquals(0, assetRepository.addAssetCalls.first().stock)
             assertEquals("All", assetRepository.addAssetCalls.first().category)
         }
 
@@ -155,7 +149,6 @@ class TambahAssetViewModelTest {
 
             viewModel.addAsset(
                 title = "Proyektor Epson",
-                stockStr = "1",
                 statusStr = "Tersedia",
                 category = "Elektronik",
                 description = "",
@@ -175,7 +168,6 @@ class TambahAssetViewModelTest {
 
             viewModel.addAsset(
                 title = "Proyektor Epson",
-                stockStr = "1",
                 statusStr = "Tersedia",
                 category = "Elektronik",
                 description = "",
@@ -200,7 +192,6 @@ class TambahAssetViewModelTest {
 
             viewModel.addAsset(
                 title = "Proyektor Epson",
-                stockStr = "1",
                 statusStr = "Tersedia",
                 category = "Elektronik",
                 description = "",

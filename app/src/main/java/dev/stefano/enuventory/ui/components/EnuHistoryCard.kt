@@ -29,7 +29,6 @@ import dev.stefano.enuventory.ui.util.shimmerLoading
 fun EnuHistoryCard(
     title: String,
     id: String,
-    stock: Int,
     status: EnuBorrowStatus,
     borrowDate: String,
     returnEstimate: String,
@@ -110,12 +109,6 @@ fun EnuHistoryCard(
                             style = EnuTheme.typography.ui.labels.normalCase.small,
                             color = EnuTheme.colors.contentDefaultSubtle
                         )
-                        Text(
-                            text = "Stock: $stock",
-                            style = EnuTheme.typography.ui.labels.normalCase.small,
-                            color = EnuTheme.colors.contentDefaultSubtle
-                        )
-
                         Spacer(Modifier.height(4.dp))
 
                         EnuBorrowStatusBadge(status = status)
@@ -224,7 +217,6 @@ fun EnuHistoryCardPreviewLight() {
             EnuHistoryCard(
                 title = "Arduino Micro Controller",
                 id = "HW-0019-A",
-                stock = 5,
                 status = EnuBorrowStatus.Dipinjam,
                 borrowDate = "16 Okt 26",
                 returnEstimate = "16 Okt 26",
@@ -232,7 +224,7 @@ fun EnuHistoryCardPreviewLight() {
             )
 
             EnuHistoryCard(
-                title = "", id = "", stock = 0,
+                title = "", id = "",
                 status = EnuBorrowStatus.Dipinjam,
                 borrowDate = "", returnEstimate = "",
                 onDetailClick = {},
@@ -253,7 +245,6 @@ fun EnuHistoryCardPreviewDark() {
             EnuHistoryCard(
                 title = "Arduino Micro Controller",
                 id = "HW-0019-A",
-                stock = 5,
                 status = EnuBorrowStatus.Dipinjam,
                 borrowDate = "16 Okt 26",
                 returnEstimate = "16 Okt 26",
@@ -261,7 +252,7 @@ fun EnuHistoryCardPreviewDark() {
             )
 
             EnuHistoryCard(
-                title = "", id = "", stock = 0,
+                title = "", id = "",
                 status = EnuBorrowStatus.Dipinjam,
                 borrowDate = "", returnEstimate = "",
                 onDetailClick = {},

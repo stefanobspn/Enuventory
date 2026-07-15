@@ -21,9 +21,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 /** Menguji [HomeViewModel]: sinkronisasi badge kategori & badge notifikasi (Admin/User). */
 class HomeViewModelTest {
@@ -36,6 +33,8 @@ class HomeViewModelTest {
     private lateinit var borrowRepository: FakeBorrowRepository
     private lateinit var authRepository: FakeAuthRepository
 
+    private val hourMillis = 60L * 60 * 1000
+
     private val currentUser =
         User(uid = "u1", name = "Budi", email = "budi@x.com", role = UserRole.RegularUser)
 
@@ -46,9 +45,6 @@ class HomeViewModelTest {
         getCurrentUserUseCase = GetCurrentUserUseCase(authRepository),
         getUserBorrowHistoryUseCase = GetUserBorrowHistoryUseCase(borrowRepository)
     )
-
-    private fun formatDate(date: Date): String =
-        SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault()).format(date)
 
     @Before
     fun setUp() {
@@ -95,39 +91,9 @@ class HomeViewModelTest {
         runTest(mainDispatcherRule.testDispatcher) {
             borrowRepository.setRecords(
                 listOf(
-                    BorrowRecord(
-                        id = "r1",
-                        assetId = "HW-1",
-                        assetTitle = "Laptop",
-                        assetStock = 1,
-                        borrowerId = "u1",
-                        borrowerName = "Budi",
-                        status = BorrowStatus.Pending,
-                        borrowDate = "1 Jan",
-                        returnEstimate = "8 Jan"
-                    ),
-                    BorrowRecord(
-                        id = "r2",
-                        assetId = "HW-2",
-                        assetTitle = "Mouse",
-                        assetStock = 1,
-                        borrowerId = "u1",
-                        borrowerName = "Budi",
-                        status = BorrowStatus.Pending,
-                        borrowDate = "1 Jan",
-                        returnEstimate = "8 Jan"
-                    ),
-                    BorrowRecord(
-                        id = "r3",
-                        assetId = "HW-3",
-                        assetTitle = "Keyboard",
-                        assetStock = 1,
-                        borrowerId = "u1",
-                        borrowerName = "Budi",
-                        status = BorrowStatus.Borrowed,
-                        borrowDate = "1 Jan",
-                        returnEstimate = "8 Jan"
-                    )
+                    record(id = "r1", assetId = "HW-1", status = BorrowStatus.Pending),
+                    record(id = "r2", assetId = "HW-2", status = BorrowStatus.Pending),
+                    record(id = "r3", assetId = "HW-3", status = BorrowStatus.Borrowed)
                 )
             )
             val viewModel = createViewModel()
@@ -141,43 +107,22 @@ class HomeViewModelTest {
     @Test
     fun `userNotificationCount counts only that user's near-deadline borrowed records`() =
         runTest(mainDispatcherRule.testDispatcher) {
-            val now = Date()
-            val soon = Date(now.time + 60 * 60 * 1000) // 1 jam lagi
-            val far = Date(now.time + 10L * 24 * 60 * 60 * 1000) // 10 hari lagi
+            val now = System.currentTimeMillis()
+            val soon = now + hourMillis // 1 jam lagi
+            val far = now + 10 * 24 * hourMillis // 10 hari lagi
             borrowRepository.setRecords(
                 listOf(
-                    BorrowRecord(
-                        id = "r1",
-                        assetId = "HW-1",
-                        assetTitle = "Laptop",
-                        assetStock = 1,
-                        borrowerId = "u1",
-                        borrowerName = "Budi",
-                        status = BorrowStatus.Borrowed,
-                        borrowDate = "1 Jan",
-                        returnEstimate = formatDate(soon)
+                    record(
+                        id = "r1", assetId = "HW-1",
+                        status = BorrowStatus.Borrowed, returnEstimate = soon
                     ),
-                    BorrowRecord(
-                        id = "r2",
-                        assetId = "HW-2",
-                        assetTitle = "Mouse",
-                        assetStock = 1,
-                        borrowerId = "u1",
-                        borrowerName = "Budi",
-                        status = BorrowStatus.Borrowed,
-                        borrowDate = "1 Jan",
-                        returnEstimate = formatDate(far)
+                    record(
+                        id = "r2", assetId = "HW-2",
+                        status = BorrowStatus.Borrowed, returnEstimate = far
                     ),
-                    BorrowRecord(
-                        id = "r3",
-                        assetId = "HW-3",
-                        assetTitle = "Keyboard",
-                        assetStock = 1,
-                        borrowerId = "someone-else",
-                        borrowerName = "Lain",
-                        status = BorrowStatus.Borrowed,
-                        borrowDate = "1 Jan",
-                        returnEstimate = formatDate(soon)
+                    record(
+                        id = "r3", assetId = "HW-3", borrowerId = "someone-else",
+                        status = BorrowStatus.Borrowed, returnEstimate = soon
                     )
                 )
             )
@@ -188,4 +133,23 @@ class HomeViewModelTest {
 
             job.cancel()
         }
+
+    private fun record(
+        id: String,
+        assetId: String,
+        status: BorrowStatus,
+        borrowerId: String = currentUser.uid,
+        returnEstimate: Long = System.currentTimeMillis() + 7 * 24 * hourMillis
+    ) = BorrowRecord(
+        id = id,
+        assetId = assetId,
+        assetTitle = "Barang $assetId",
+        borrowerId = borrowerId,
+        borrowerName = "Budi",
+        status = status,
+        requestedAt = System.currentTimeMillis() - 24 * hourMillis,
+        borrowDate = System.currentTimeMillis() - 24 * hourMillis,
+        returnEstimate = returnEstimate,
+        reason = "Kebutuhan proyek"
+    )
 }

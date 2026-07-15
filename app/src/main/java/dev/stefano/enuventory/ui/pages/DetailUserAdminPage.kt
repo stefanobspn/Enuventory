@@ -48,6 +48,7 @@ import dev.stefano.enuventory.ui.components.EnuTab
 import dev.stefano.enuventory.ui.components.EnuTextField
 import dev.stefano.enuventory.ui.components.EnuTopBar
 import dev.stefano.enuventory.ui.theme.EnuTheme
+import dev.stefano.enuventory.ui.util.formatDate
 import dev.stefano.enuventory.ui.util.toUiStatus
 
 @Composable
@@ -288,13 +289,12 @@ private fun DetailUserAdminContent(
                             EnuHistoryCard(
                                 title = item.assetTitle,
                                 id = item.assetId,
-                                stock = item.assetStock,
-                                status = item.status.toUiStatus(),
-                                borrowDate = item.borrowDate,
+                                status = item.toUiStatus(),
+                                borrowDate = formatDate(item.borrowDate),
                                 returnEstimate = if (item.isFinished) {
-                                    item.returnDate ?: "-"
+                                    item.returnDate?.let(::formatDate) ?: "-"
                                 } else {
-                                    item.returnEstimate
+                                    formatDate(item.returnEstimate)
                                 },
                                 isFinished = item.isFinished,
                                 onDetailClick = {}
@@ -308,7 +308,7 @@ private fun DetailUserAdminContent(
                 Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     repeat(2) {
                         EnuHistoryCard(
-                            title = "", id = "", stock = 0,
+                            title = "", id = "",
                             status = EnuBorrowStatus.Menunggu,
                             borrowDate = "", returnEstimate = "",
                             onDetailClick = {},
@@ -392,12 +392,13 @@ fun DetailUserAdminPagePreviewLight() {
             id = "r1",
             assetId = "HW-001",
             assetTitle = "Macbook Pro 14",
-            assetStock = 1,
             borrowerId = "1",
             borrowerName = "Budi Santoso",
             status = BorrowStatus.Borrowed,
-            borrowDate = "12 Jul 2026",
-            returnEstimate = "19 Jul 2026"
+            requestedAt = 1_784_246_400_000L,
+            borrowDate = 1_784_246_400_000L,
+            returnEstimate = 1_784_851_200_000L,
+            reason = "Kebutuhan proyek"
         )
     )
     EnuTheme {

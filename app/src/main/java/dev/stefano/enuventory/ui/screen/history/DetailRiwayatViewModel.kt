@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.stefano.enuventory.domain.model.BorrowRecord
 import dev.stefano.enuventory.domain.model.BorrowStatus
+import dev.stefano.enuventory.domain.usecase.GetAssetByIdUseCase
 import dev.stefano.enuventory.domain.usecase.GetBorrowRecordByIdUseCase
 import dev.stefano.enuventory.ui.common.UiState
 import dev.stefano.enuventory.ui.pages.DetailRiwayatState
@@ -17,13 +18,15 @@ import javax.inject.Inject
 
 data class DetailRiwayatUiModel(
     val record: BorrowRecord,
-    val riwayatState: DetailRiwayatState
+    val riwayatState: DetailRiwayatState,
+    val assetImageUrl: String? = null
 )
 
 @HiltViewModel
 class DetailRiwayatViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
-    private val getBorrowRecordByIdUseCase: GetBorrowRecordByIdUseCase
+    private val getBorrowRecordByIdUseCase: GetBorrowRecordByIdUseCase,
+    private val getAssetByIdUseCase: GetAssetByIdUseCase
 ) : ViewModel() {
 
     val recordId: String = savedStateHandle.get<String>("recordId") ?: ""
@@ -43,11 +46,16 @@ class DetailRiwayatViewModel @Inject constructor(
                 if (record != null) {
                     val riwayatState = when (record.status) {
                         BorrowStatus.Pending -> DetailRiwayatState.MenungguPersetujuan
+                        BorrowStatus.WaitingPickup -> DetailRiwayatState.MenungguPengambilan
                         BorrowStatus.Borrowed -> DetailRiwayatState.BatasKembali
                         BorrowStatus.Rejected -> DetailRiwayatState.Ditolak
                         BorrowStatus.Completed -> DetailRiwayatState.Dikembalikan
+                        BorrowStatus.Damaged -> DetailRiwayatState.DikembalikanRusak
                     }
-                    _uiState.value = UiState.Success(DetailRiwayatUiModel(record, riwayatState))
+                    val assetImageUrl = getAssetByIdUseCase(record.assetId)?.imageUrl
+                    _uiState.value = UiState.Success(
+                        DetailRiwayatUiModel(record, riwayatState, assetImageUrl)
+                    )
                 } else {
                     _uiState.value = UiState.Error("Riwayat tidak ditemukan")
                 }

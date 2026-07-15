@@ -33,7 +33,6 @@ class FakeAssetRepository : AssetRepository {
             return assetsFlow.value.firstOrNull() ?: Asset(
                 id = assetId,
                 title = "Simulated collision",
-                stock = 0,
                 status = dev.stefano.enuventory.domain.model.AssetStatus.Available,
                 category = "",
                 description = ""

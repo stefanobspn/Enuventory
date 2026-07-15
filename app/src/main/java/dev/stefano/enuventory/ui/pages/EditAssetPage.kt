@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -45,7 +44,6 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -67,7 +65,7 @@ import dev.stefano.enuventory.ui.theme.EnuTheme
 
 private fun AssetStatus.toStatusLabel(): String = when (this) {
     AssetStatus.Available -> "Tersedia"
-    AssetStatus.Unavailable -> "Tidak Tersedia"
+    AssetStatus.Reserved -> "Direservasi"
     AssetStatus.Maintenance -> "Maintenance"
 }
 
@@ -81,7 +79,6 @@ fun EditAssetPage(
     onBackClick: () -> Unit,
     onEditAssetClick: (
         title: String,
-        stock: String,
         status: String,
         category: String,
         description: String,
@@ -160,7 +157,6 @@ private fun EditAssetForm(
     categories: List<Category>,
     onEditAssetClick: (
         title: String,
-        stock: String,
         status: String,
         category: String,
         description: String,
@@ -171,7 +167,6 @@ private fun EditAssetForm(
     modifier: Modifier = Modifier
 ) {
     var titleInput by remember(asset.id) { mutableStateOf(asset.title) }
-    var stockInput by remember(asset.id) { mutableStateOf(asset.stock.toString()) }
     var descriptionInput by remember(asset.id) { mutableStateOf(asset.description) }
     var validationError by remember { mutableStateOf<String?>(null) }
 
@@ -201,7 +196,7 @@ private fun EditAssetForm(
 
     var statusInput by remember(asset.id) { mutableStateOf(asset.status.toStatusLabel()) }
     var isStatusDropdownExpanded by remember { mutableStateOf(false) }
-    val statusOptions = listOf("Tersedia", "Tidak Tersedia", "Maintenance")
+    val statusOptions = listOf("Tersedia", "Direservasi", "Maintenance")
 
     var categoryInput by remember(asset.id) { mutableStateOf(asset.category) }
     var showCategoryDialog by remember { mutableStateOf(false) }
@@ -388,15 +383,6 @@ private fun EditAssetForm(
             isRequired = true
         )
 
-        EnuTextField(
-            value = stockInput,
-            onValueChange = { input -> if (input.all(Char::isDigit)) stockInput = input },
-            placeholder = "Enter stock",
-            label = "Stock",
-            isRequired = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-        )
-
         Box(modifier = Modifier.fillMaxWidth()) {
             EnuTextField(
                 value = statusInput,
@@ -477,10 +463,6 @@ private fun EditAssetForm(
             onClick = {
                 validationError = when {
                     titleInput.isBlank() -> "Title wajib diisi"
-                    stockInput.isBlank() -> "Stock wajib diisi"
-                    stockInput.toIntOrNull() == null || stockInput.toInt() <= 0 ->
-                        "Stock harus berupa angka lebih dari 0"
-
                     statusInput.isBlank() -> "Status wajib dipilih"
                     else -> null
                 }
@@ -498,7 +480,6 @@ private fun EditAssetForm(
                     }
                     onEditAssetClick(
                         titleInput,
-                        stockInput,
                         statusInput,
                         categoryInput,
                         descriptionInput,
@@ -519,7 +500,6 @@ fun EditAssetPagePreviewLight() {
     val dummyAsset = Asset(
         id = "HW-001",
         title = "Macbook Pro 14",
-        stock = 3,
         status = AssetStatus.Available,
         category = "Elektro",
         description = "Laptop untuk programming"
@@ -532,7 +512,7 @@ fun EditAssetPagePreviewLight() {
             currentRoute = "home",
             onBottomBarItemClick = {},
             onBackClick = {},
-            onEditAssetClick = { _, _, _, _, _, _ -> },
+            onEditAssetClick = { _, _, _, _, _ -> },
             onAddCategory = { _, _ -> },
             onManageCategoriesClick = {},
             onRetryClick = {}
@@ -546,7 +526,6 @@ fun EditAssetPagePreviewDark() {
     val dummyAsset = Asset(
         id = "HW-001",
         title = "Macbook Pro 14",
-        stock = 3,
         status = AssetStatus.Available,
         category = "Elektro",
         description = "Laptop untuk programming"
@@ -559,7 +538,7 @@ fun EditAssetPagePreviewDark() {
             currentRoute = "home",
             onBottomBarItemClick = {},
             onBackClick = {},
-            onEditAssetClick = { _, _, _, _, _, _ -> },
+            onEditAssetClick = { _, _, _, _, _ -> },
             onAddCategory = { _, _ -> },
             onManageCategoriesClick = {},
             onRetryClick = {}

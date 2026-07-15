@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -30,6 +29,7 @@ import dev.stefano.enuventory.ui.components.EnuHistoryCard
 import dev.stefano.enuventory.ui.components.EnuTab
 import dev.stefano.enuventory.ui.components.EnuTopBar
 import dev.stefano.enuventory.ui.theme.EnuTheme
+import dev.stefano.enuventory.ui.util.formatDate
 import dev.stefano.enuventory.ui.util.toUiStatus
 
 @Composable
@@ -94,13 +94,12 @@ fun HistoryPage(
                                 EnuHistoryCard(
                                     title = item.assetTitle,
                                     id = item.assetId,
-                                    stock = item.assetStock,
-                                    status = item.status.toUiStatus(),
-                                    borrowDate = item.borrowDate,
+                                    status = item.toUiStatus(),
+                                    borrowDate = formatDate(item.borrowDate),
                                     returnEstimate = if (item.isFinished) {
-                                        item.returnDate ?: "-"
+                                        item.returnDate?.let(::formatDate) ?: "-"
                                     } else {
-                                        item.returnEstimate
+                                        formatDate(item.returnEstimate)
                                     },
                                     isFinished = item.isFinished,
                                     onDetailClick = { onDetailClick(item.id) }
@@ -117,7 +116,7 @@ fun HistoryPage(
                     ) {
                         items(2) {
                             EnuHistoryCard(
-                                title = "", id = "", stock = 0,
+                                title = "", id = "",
                                 status = EnuBorrowStatus.Menunggu,
                                 borrowDate = "", returnEstimate = "",
                                 onDetailClick = {},

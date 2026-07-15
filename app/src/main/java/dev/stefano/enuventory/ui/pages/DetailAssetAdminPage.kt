@@ -145,11 +145,6 @@ fun DetailAssetAdminPage(
                                     style = EnuTheme.typography.content.headings.h6,
                                     color = EnuTheme.colors.contentDefaultSubtle
                                 )
-                                Text(
-                                    text = "Stock: ${asset.stock}",
-                                    style = EnuTheme.typography.content.headings.h6,
-                                    color = EnuTheme.colors.contentDefaultSubtle
-                                )
                                 Spacer(modifier = Modifier.height(2.dp))
                                 EnuInventoryStatusBadge(status = asset.status.toUiStatus())
                             }
@@ -227,7 +222,6 @@ fun DetailAssetAdminNormalPreviewLight() {
     val dummyAsset = Asset(
         id = "HW-001",
         title = "Macbook Pro 14",
-        stock = 3,
         status = AssetStatus.Available,
         category = "Elektro",
         description = "Laptop untuk programming"

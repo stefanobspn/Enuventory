@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -44,7 +43,6 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -70,7 +68,6 @@ fun TambahAssetPage(
     onBackClick: () -> Unit,
     onTambahAssetClick: (
         title: String,
-        stock: String,
         status: String,
         category: String,
         description: String,
@@ -82,7 +79,6 @@ fun TambahAssetPage(
     modifier: Modifier = Modifier
 ) {
     var titleInput by remember { mutableStateOf("") }
-    var stockInput by remember { mutableStateOf("") }
     var descriptionInput by remember { mutableStateOf("") }
     var validationError by remember { mutableStateOf<String?>(null) }
 
@@ -111,7 +107,7 @@ fun TambahAssetPage(
 
     var statusInput by remember { mutableStateOf("") }
     var isStatusDropdownExpanded by remember { mutableStateOf(false) }
-    val statusOptions = listOf("Tersedia", "Tidak Tersedia", "Maintenance")
+    val statusOptions = listOf("Tersedia", "Direservasi", "Maintenance")
 
     var categoryInput by remember { mutableStateOf("") }
     var showCategoryDialog by remember { mutableStateOf(false) }
@@ -302,15 +298,6 @@ fun TambahAssetPage(
                     isRequired = true
                 )
 
-                EnuTextField(
-                    value = stockInput,
-                    onValueChange = { input -> if (input.all(Char::isDigit)) stockInput = input },
-                    placeholder = "Enter stock",
-                    label = "Stock",
-                    isRequired = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-                )
-
                 Box(modifier = Modifier.fillMaxWidth()) {
                     EnuTextField(
                         value = statusInput,
@@ -383,10 +370,6 @@ fun TambahAssetPage(
                     onClick = {
                         validationError = when {
                             titleInput.isBlank() -> "Title wajib diisi"
-                            stockInput.isBlank() -> "Stock wajib diisi"
-                            stockInput.toIntOrNull() == null || stockInput.toInt() <= 0 ->
-                                "Stock harus berupa angka lebih dari 0"
-
                             statusInput.isBlank() -> "Status wajib dipilih"
                             else -> null
                         }
@@ -404,7 +387,6 @@ fun TambahAssetPage(
                             }
                             onTambahAssetClick(
                                 titleInput,
-                                stockInput,
                                 statusInput,
                                 categoryInput,
                                 descriptionInput,
@@ -431,7 +413,7 @@ fun TambahAssetPagePreviewLight() {
             currentRoute = "home",
             onBottomBarItemClick = {},
             onBackClick = {},
-            onTambahAssetClick = { _, _, _, _, _, _ -> },
+            onTambahAssetClick = { _, _, _, _, _ -> },
             onAddCategory = { _, _ -> },
             onManageCategoriesClick = {},
             onRetryClick = {}
@@ -449,7 +431,7 @@ fun TambahAssetPagePreviewDark() {
             currentRoute = "home",
             onBottomBarItemClick = {},
             onBackClick = {},
-            onTambahAssetClick = { _, _, _, _, _, _ -> },
+            onTambahAssetClick = { _, _, _, _, _ -> },
             onAddCategory = { _, _ -> },
             onManageCategoriesClick = {},
             onRetryClick = {}

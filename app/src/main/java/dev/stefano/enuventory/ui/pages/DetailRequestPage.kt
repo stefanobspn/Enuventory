@@ -19,8 +19,13 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import dev.stefano.enuventory.domain.model.BorrowRecord
@@ -33,20 +38,70 @@ import dev.stefano.enuventory.ui.components.EnuBottomBarItemData
 import dev.stefano.enuventory.ui.components.EnuButton
 import dev.stefano.enuventory.ui.components.EnuButtonVariant
 import dev.stefano.enuventory.ui.components.EnuDetailHistoryCard
+import dev.stefano.enuventory.ui.components.EnuReasonDialog
+import dev.stefano.enuventory.ui.components.EnuReturnProcessDialog
+import dev.stefano.enuventory.ui.components.EnuScheduleDialog
 import dev.stefano.enuventory.ui.components.EnuTopBar
 import dev.stefano.enuventory.ui.theme.EnuTheme
+import dev.stefano.enuventory.ui.util.formatDate
+import dev.stefano.enuventory.ui.util.formatDateTime
 
+/**
+ * Halaman detail request untuk admin — aksinya mengikuti status record:
+ * Pending → Approve (dialog jadwal) / Tolak (dialog alasan);
+ * Borrowed → Proses Pengembalian (dialog kondisi Normal/Rusak);
+ * status lainnya menampilkan info hasilnya.
+ */
 @Composable
 fun DetailRequestPage(
     state: UiState<BorrowRecord>,
+    assetImageUrl: String?,
     currentRoute: String?,
     onBottomBarItemClick: (EnuBottomBarItemData) -> Unit,
     onBackClick: () -> Unit,
-    onApproveClick: () -> Unit,
-    onTolakClick: () -> Unit,
+    onApproveConfirm: (pickupScheduleMillis: Long) -> Unit,
+    onRejectConfirm: (rejectionReason: String) -> Unit,
+    onReturnConfirm: (isDamaged: Boolean, damageNotes: String?) -> Unit,
     onRetryClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var showScheduleDialog by remember { mutableStateOf(false) }
+    var showRejectDialog by remember { mutableStateOf(false) }
+    var showReturnDialog by remember { mutableStateOf(false) }
+
+    if (showScheduleDialog) {
+        EnuScheduleDialog(
+            onDismissRequest = { showScheduleDialog = false },
+            onConfirmClick = { scheduleMillis ->
+                showScheduleDialog = false
+                onApproveConfirm(scheduleMillis)
+            }
+        )
+    }
+
+    if (showRejectDialog) {
+        EnuReasonDialog(
+            title = "Alasan Penolakan",
+            placeholder = "Tuliskan alasan penolakan...",
+            submitText = "Tolak",
+            onDismissRequest = { showRejectDialog = false },
+            onSubmitClick = { reason ->
+                showRejectDialog = false
+                onRejectConfirm(reason)
+            }
+        )
+    }
+
+    if (showReturnDialog) {
+        EnuReturnProcessDialog(
+            onDismissRequest = { showReturnDialog = false },
+            onConfirmClick = { isDamaged, damageNotes ->
+                showReturnDialog = false
+                onReturnConfirm(isDamaged, damageNotes)
+            }
+        )
+    }
+
     Scaffold(
         modifier = modifier,
         topBar = {
@@ -80,7 +135,8 @@ fun DetailRequestPage(
 
                     EnuDetailHistoryCard(
                         title = record.assetTitle,
-                        id = record.assetId
+                        id = record.assetId,
+                        imageUrl = assetImageUrl
                     )
 
                     Card(
@@ -93,91 +149,86 @@ fun DetailRequestPage(
                             modifier = Modifier.padding(16.dp),
                             verticalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
+                            InfoField("Peminjam", record.borrowerName)
+
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = "Tanggal pinjam",
-                                        style = EnuTheme.typography.content.headings.h6,
-                                        color = EnuTheme.colors.contentDefaultSubtle
-                                    )
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text(
-                                        text = record.borrowDate,
-                                        style = EnuTheme.typography.ui.labels.normalCase.base,
-                                        color = EnuTheme.colors.contentDefaultPrimary
-                                    )
+                                    InfoField("Tanggal pinjam", formatDate(record.borrowDate))
                                 }
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = "Estimasi Kembali",
-                                        style = EnuTheme.typography.content.headings.h6,
-                                        color = EnuTheme.colors.contentDefaultSubtle
-                                    )
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text(
-                                        text = record.returnEstimate,
-                                        style = EnuTheme.typography.ui.labels.normalCase.base,
-                                        color = EnuTheme.colors.contentDefaultPrimary
-                                    )
+                                    InfoField("Estimasi Kembali", formatDate(record.returnEstimate))
                                 }
                             }
 
-                            Column(modifier = Modifier.fillMaxWidth()) {
-                                Text(
-                                    text = "Pesan",
-                                    style = EnuTheme.typography.content.headings.h6,
-                                    color = EnuTheme.colors.contentDefaultSubtle
-                                )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = "Peminjaman alat oleh user.",
-                                    style = EnuTheme.typography.ui.labels.normalCase.base,
-                                    color = EnuTheme.colors.contentDefaultPrimary
-                                )
+                            InfoField("Alasan", record.reason)
+
+                            // Info tambahan sesuai progres record
+                            record.pickupSchedule?.let {
+                                InfoField("Jadwal Pengambilan", formatDateTime(it))
+                            }
+                            record.pickedUpAt?.let {
+                                InfoField("Diambil pada", formatDateTime(it))
+                            }
+                            record.returnDate?.let {
+                                InfoField("Dikembalikan pada", formatDateTime(it))
+                            }
+                            record.rejectionReason?.let {
+                                InfoField("Alasan Penolakan", it)
+                            }
+                            record.damageNotes?.let {
+                                InfoField("Catatan Kerusakan", it)
                             }
                         }
                     }
 
-                    if (record.status == BorrowStatus.Pending) {
-                        Column(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            EnuButton(
-                                text = "Approve",
-                                variant = EnuButtonVariant.Normal,
-                                onClick = onApproveClick,
-                                modifier = Modifier.fillMaxWidth()
-                            )
+                    when (record.status) {
+                        BorrowStatus.Pending -> {
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                EnuButton(
+                                    text = "Approve",
+                                    variant = EnuButtonVariant.Normal,
+                                    onClick = { showScheduleDialog = true },
+                                    modifier = Modifier.fillMaxWidth()
+                                )
 
+                                EnuButton(
+                                    text = "Tolak",
+                                    variant = EnuButtonVariant.Danger,
+                                    onClick = { showRejectDialog = true },
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
+                        }
+
+                        BorrowStatus.Borrowed -> {
                             EnuButton(
-                                text = "Tolak",
-                                variant = EnuButtonVariant.Danger,
-                                onClick = onTolakClick,
+                                text = "Proses Pengembalian",
+                                variant = EnuButtonVariant.Normal,
+                                onClick = { showReturnDialog = true },
                                 modifier = Modifier.fillMaxWidth()
                             )
                         }
-                    } else {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(56.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            val (statusText, statusColor) = when (record.status) {
-                                BorrowStatus.Borrowed -> "Disetujui" to EnuTheme.colors.contentSignalSuccessDefault
-                                BorrowStatus.Rejected -> "Ditolak" to EnuTheme.colors.contentSignalErrorDefault
-                                BorrowStatus.Completed -> "Selesai" to EnuTheme.colors.contentSignalSuccessDefault
-                                else -> "Pending" to EnuTheme.colors.contentSignalWarningDefault
+
+                        else -> {
+                            val (statusText, statusColor) = record.statusInfo()
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(56.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "Status: $statusText",
+                                    style = EnuTheme.typography.ui.labels.normalCase.large,
+                                    color = statusColor
+                                )
                             }
-                            Text(
-                                text = "Status: $statusText",
-                                style = EnuTheme.typography.ui.labels.normalCase.large,
-                                color = statusColor
-                            )
                         }
                     }
 
@@ -204,6 +255,32 @@ fun DetailRequestPage(
     }
 }
 
+@Composable
+private fun InfoField(label: String, value: String) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = label,
+            style = EnuTheme.typography.content.headings.h6,
+            color = EnuTheme.colors.contentDefaultSubtle
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = value,
+            style = EnuTheme.typography.ui.labels.normalCase.base,
+            color = EnuTheme.colors.contentDefaultPrimary
+        )
+    }
+}
+
+@Composable
+private fun BorrowRecord.statusInfo(): Pair<String, Color> = when (status) {
+    BorrowStatus.WaitingPickup -> "Menunggu Pengambilan" to EnuTheme.colors.contentSignalWarningDefault
+    BorrowStatus.Rejected -> "Ditolak" to EnuTheme.colors.contentSignalErrorDefault
+    BorrowStatus.Completed -> "Selesai" to EnuTheme.colors.contentSignalSuccessDefault
+    BorrowStatus.Damaged -> "Dikembalikan Rusak" to EnuTheme.colors.contentSignalErrorDefault
+    else -> "Pending" to EnuTheme.colors.contentSignalWarningDefault
+}
+
 @Preview(showBackground = true, name = "Light")
 @Composable
 fun DetailRequestPagePreviewLight() {
@@ -211,21 +288,24 @@ fun DetailRequestPagePreviewLight() {
         id = "BR-001",
         assetId = "HW-0019-A",
         assetTitle = "Arduino Micro Controller",
-        assetStock = 5,
         borrowerId = "U-001",
         borrowerName = "Budi",
         status = BorrowStatus.Pending,
-        borrowDate = "16 Okt 26",
-        returnEstimate = "20 Okt 26"
+        requestedAt = 1_792_195_200_000L,
+        borrowDate = 1_792_195_200_000L,
+        returnEstimate = 1_792_540_800_000L,
+        reason = "Peminjaman alat untuk proyek kelas"
     )
     EnuTheme {
         DetailRequestPage(
             state = UiState.Success(dummyRecord),
+            assetImageUrl = null,
             currentRoute = "approval",
             onBottomBarItemClick = {},
             onBackClick = {},
-            onApproveClick = {},
-            onTolakClick = {},
+            onApproveConfirm = {},
+            onRejectConfirm = {},
+            onReturnConfirm = { _, _ -> },
             onRetryClick = {}
         )
     }

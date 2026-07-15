@@ -10,16 +10,15 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -28,33 +27,28 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
-import dev.stefano.enuventory.R
 import dev.stefano.enuventory.domain.model.Asset
 import dev.stefano.enuventory.domain.model.AssetStatus
 import dev.stefano.enuventory.ui.common.EnuEmptyState
 import dev.stefano.enuventory.ui.common.EnuErrorState
 import dev.stefano.enuventory.ui.common.UiState
-import dev.stefano.enuventory.ui.screen.asset.DetailAssetUiModel
 import dev.stefano.enuventory.ui.components.EnuBorrowDialog
 import dev.stefano.enuventory.ui.components.EnuBottomBar
 import dev.stefano.enuventory.ui.components.EnuBottomBarItemData
 import dev.stefano.enuventory.ui.components.EnuButton
 import dev.stefano.enuventory.ui.components.EnuButtonVariant
-import dev.stefano.enuventory.ui.components.EnuInventoryStatus
 import dev.stefano.enuventory.ui.components.EnuInventoryStatusBadge
 import dev.stefano.enuventory.ui.components.EnuTopBar
+import dev.stefano.enuventory.ui.screen.asset.DetailAssetUiModel
 import dev.stefano.enuventory.ui.theme.EnuTheme
 import dev.stefano.enuventory.ui.util.toUiStatus
 
-import androidx.compose.runtime.LaunchedEffect
-
 enum class DetailAssetUserState {
-    Normal, Error, MenungguPersetujuan, SedangDipinjam
+    Normal, Error, MenungguPersetujuan, MenungguPengambilan, SedangDipinjam, TidakTersedia
 }
 
 @Composable
@@ -63,7 +57,7 @@ fun DetailAssetUserPage(
     currentRoute: String?,
     onBottomBarItemClick: (EnuBottomBarItemData) -> Unit,
     onBackClick: () -> Unit,
-    onPinjamClick: (returnEstimate: String) -> Unit,
+    onPinjamClick: (borrowDateMillis: Long, returnEstimateMillis: Long, alasan: String) -> Unit,
     onBatalkanClick: (recordId: String) -> Unit,
     onRetryClick: () -> Unit,
     modifier: Modifier = Modifier
@@ -85,9 +79,9 @@ fun DetailAssetUserPage(
         EnuBorrowDialog(
             onDismissRequest = { showBorrowDialog = false },
             isSubmitting = isDialogSubmitting,
-            onSubmitClick = { _, estimasi ->
+            onSubmitClick = { borrowMillis, returnMillis, alasan ->
                 isDialogSubmitting = true
-                onPinjamClick(estimasi)
+                onPinjamClick(borrowMillis, returnMillis, alasan)
             }
         )
     }
@@ -171,11 +165,6 @@ fun DetailAssetUserPage(
                                     style = EnuTheme.typography.content.headings.h6,
                                     color = EnuTheme.colors.contentDefaultSubtle
                                 )
-                                Text(
-                                    text = "Stock: ${asset.stock}",
-                                    style = EnuTheme.typography.content.headings.h6,
-                                    color = EnuTheme.colors.contentDefaultSubtle
-                                )
                                 Spacer(modifier = Modifier.height(2.dp))
                                 EnuInventoryStatusBadge(status = asset.status.toUiStatus())
                             }
@@ -218,6 +207,38 @@ fun DetailAssetUserPage(
                                     onClick = { showBorrowDialog = true },
                                     modifier = Modifier.fillMaxWidth()
                                 )
+                            }
+
+                            DetailAssetUserState.TidakTersedia -> {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(56.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "Asset sedang tidak tersedia",
+                                        style = EnuTheme.typography.ui.labels.normalCase.large,
+                                        color = EnuTheme.colors.contentDefaultSubtle,
+                                        textAlign = TextAlign.Center
+                                    )
+                                }
+                            }
+
+                            DetailAssetUserState.MenungguPengambilan -> {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(56.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "Menunggu Pengambilan",
+                                        style = EnuTheme.typography.ui.labels.normalCase.large,
+                                        color = EnuTheme.colors.contentSignalWarningDefault,
+                                        textAlign = TextAlign.Center
+                                    )
+                                }
                             }
 
                             DetailAssetUserState.MenungguPersetujuan -> {
@@ -296,7 +317,6 @@ fun DetailAssetNormalPreview() {
     val dummyAsset = Asset(
         id = "HW-001",
         title = "Macbook Pro 14",
-        stock = 3,
         status = AssetStatus.Available,
         category = "Elektro",
         description = "Laptop untuk programming"
@@ -309,7 +329,7 @@ fun DetailAssetNormalPreview() {
             currentRoute = "home",
             onBottomBarItemClick = {},
             onBackClick = {},
-            onPinjamClick = {},
+            onPinjamClick = { _, _, _ -> },
             onBatalkanClick = {},
             onRetryClick = {}
         )

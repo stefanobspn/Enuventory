@@ -56,8 +56,7 @@ class AssetRepositoryImpl @Inject constructor(
             Asset(
                 id = id,
                 title = getString("title") ?: return null,
-                stock = getLong("stock")?.toInt() ?: 0,
-                status = AssetStatus.valueOf(getString("status") ?: AssetStatus.Available.name),
+                status = AssetStatus.fromRaw(getString("status")),
                 category = getString("category") ?: "",
                 description = getString("description") ?: "",
                 imageUrl = getString("imageUrl")
@@ -69,7 +68,6 @@ class AssetRepositoryImpl @Inject constructor(
 
     private fun Asset.toMap(): Map<String, Any?> = mapOf(
         "title" to title,
-        "stock" to stock,
         "status" to status.name,
         "category" to category,
         "description" to description,

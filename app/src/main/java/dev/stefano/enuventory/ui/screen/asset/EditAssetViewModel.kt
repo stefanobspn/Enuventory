@@ -74,17 +74,15 @@ class EditAssetViewModel @Inject constructor(
 
     fun editAsset(
         title: String,
-        stockStr: String,
         statusStr: String,
         category: String,
         description: String,
         imageBytes: ByteArray? = null,
         onSuccess: () -> Unit
     ) {
-        val stock = stockStr.toIntOrNull() ?: 0
         val status = when (statusStr) {
             "Tersedia" -> AssetStatus.Available
-            "Tidak Tersedia" -> AssetStatus.Unavailable
+            "Direservasi" -> AssetStatus.Reserved
             else -> AssetStatus.Maintenance
         }
         val existingImageUrl = (assetState.value as? UiState.Success)?.data?.imageUrl
@@ -97,7 +95,6 @@ class EditAssetViewModel @Inject constructor(
                 val asset = Asset(
                     id = assetId,
                     title = title,
-                    stock = stock,
                     status = status,
                     category = category.ifBlank { "All" },
                     description = description,

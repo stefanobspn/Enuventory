@@ -38,9 +38,11 @@ import dev.stefano.enuventory.ui.components.EnuTimelineNodeStatus
 import dev.stefano.enuventory.ui.components.EnuTopBar
 import dev.stefano.enuventory.ui.screen.history.DetailRiwayatUiModel
 import dev.stefano.enuventory.ui.theme.EnuTheme
+import dev.stefano.enuventory.ui.util.formatDate
+import dev.stefano.enuventory.ui.util.formatDateTime
 
 enum class DetailRiwayatState {
-    MenungguPersetujuan, MenungguPengambilan, BatasKembali, Dikembalikan, Ditolak
+    MenungguPersetujuan, MenungguPengambilan, BatasKembali, Dikembalikan, DikembalikanRusak, Ditolak
 }
 
 @Composable
@@ -50,7 +52,6 @@ fun DetailRiwayatPage(
     onBottomBarItemClick: (EnuBottomBarItemData) -> Unit,
     onBackClick: () -> Unit,
     onScanQrClick: () -> Unit,
-    onKembalikanClick: () -> Unit,
     onRetryClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -78,12 +79,13 @@ fun DetailRiwayatPage(
                 val record = data.record
                 val riwayatState = data.riwayatState
 
-                val timelineItems = remember(riwayatState) {
+                val nowMillis = remember { System.currentTimeMillis() }
+                val timelineItems = remember(riwayatState, record) {
                     when (riwayatState) {
                         DetailRiwayatState.MenungguPersetujuan -> listOf(
                             EnuTimelineItemData(
                                 "Diajukan",
-                                record.borrowDate,
+                                formatDate(record.requestedAt),
                                 EnuTimelineNodeStatus.Completed
                             ),
                             EnuTimelineItemData("Menunggu Persetujuan", null, EnuTimelineNodeStatus.Current),
@@ -94,55 +96,69 @@ fun DetailRiwayatPage(
                         DetailRiwayatState.MenungguPengambilan -> listOf(
                             EnuTimelineItemData(
                                 "Diajukan",
-                                record.borrowDate,
+                                formatDate(record.requestedAt),
                                 EnuTimelineNodeStatus.Completed
                             ),
                             EnuTimelineItemData(
                                 "Disetujui",
-                                record.borrowDate,
+                                formatDate(record.borrowDate),
                                 EnuTimelineNodeStatus.Completed
                             ),
-                            EnuTimelineItemData("Menunggu Pengambilan", null, EnuTimelineNodeStatus.Current),
+                            EnuTimelineItemData(
+                                "Menunggu Pengambilan",
+                                record.pickupSchedule?.let { "Jadwal: ${formatDateTime(it)}" },
+                                EnuTimelineNodeStatus.Current
+                            ),
                             EnuTimelineItemData("Batas Kembali", null, EnuTimelineNodeStatus.Upcoming)
                         )
 
                         DetailRiwayatState.BatasKembali -> listOf(
                             EnuTimelineItemData(
                                 "Diajukan",
-                                record.borrowDate,
+                                formatDate(record.requestedAt),
                                 EnuTimelineNodeStatus.Completed
                             ),
                             EnuTimelineItemData(
                                 "Disetujui",
-                                record.borrowDate,
+                                formatDate(record.borrowDate),
                                 EnuTimelineNodeStatus.Completed
                             ),
                             EnuTimelineItemData(
                                 "Diambil",
-                                record.borrowDate,
+                                record.pickedUpAt?.let(::formatDate)
+                                    ?: formatDate(record.borrowDate),
                                 EnuTimelineNodeStatus.Completed
                             ),
                             EnuTimelineItemData(
                                 "Batas Kembali",
-                                record.returnEstimate,
-                                EnuTimelineNodeStatus.Current
+                                if (record.isOverdue(nowMillis)) {
+                                    "${formatDate(record.returnEstimate)} (Terlambat)"
+                                } else {
+                                    formatDate(record.returnEstimate)
+                                },
+                                if (record.isOverdue(nowMillis)) {
+                                    EnuTimelineNodeStatus.Rejected
+                                } else {
+                                    EnuTimelineNodeStatus.Current
+                                }
                             )
                         )
 
                         DetailRiwayatState.Dikembalikan -> listOf(
                             EnuTimelineItemData(
                                 "Diajukan",
-                                record.borrowDate,
+                                formatDate(record.requestedAt),
                                 EnuTimelineNodeStatus.Completed
                             ),
                             EnuTimelineItemData(
                                 "Disetujui",
-                                record.borrowDate,
+                                formatDate(record.borrowDate),
                                 EnuTimelineNodeStatus.Completed
                             ),
                             EnuTimelineItemData(
                                 "Diambil",
-                                record.borrowDate,
+                                record.pickedUpAt?.let(::formatDate)
+                                    ?: formatDate(record.borrowDate),
                                 EnuTimelineNodeStatus.Completed
                             ),
                             EnuTimelineItemData(
@@ -152,13 +168,41 @@ fun DetailRiwayatPage(
                             )
                         )
 
+                        DetailRiwayatState.DikembalikanRusak -> listOf(
+                            EnuTimelineItemData(
+                                "Diajukan",
+                                formatDate(record.requestedAt),
+                                EnuTimelineNodeStatus.Completed
+                            ),
+                            EnuTimelineItemData(
+                                "Disetujui",
+                                formatDate(record.borrowDate),
+                                EnuTimelineNodeStatus.Completed
+                            ),
+                            EnuTimelineItemData(
+                                "Diambil",
+                                record.pickedUpAt?.let(::formatDate)
+                                    ?: formatDate(record.borrowDate),
+                                EnuTimelineNodeStatus.Completed
+                            ),
+                            EnuTimelineItemData(
+                                "Dikembalikan (Rusak)",
+                                record.damageNotes,
+                                EnuTimelineNodeStatus.Rejected
+                            )
+                        )
+
                         DetailRiwayatState.Ditolak -> listOf(
                             EnuTimelineItemData(
                                 "Diajukan",
-                                record.borrowDate,
+                                formatDate(record.requestedAt),
                                 EnuTimelineNodeStatus.Completed
                             ),
-                            EnuTimelineItemData("Ditolak", null, EnuTimelineNodeStatus.Rejected)
+                            EnuTimelineItemData(
+                                "Ditolak",
+                                record.rejectionReason,
+                                EnuTimelineNodeStatus.Rejected
+                            )
                         )
                     }
                 }
@@ -175,7 +219,8 @@ fun DetailRiwayatPage(
 
                     EnuDetailHistoryCard(
                         title = record.assetTitle,
-                        id = record.assetId
+                        id = record.assetId,
+                        imageUrl = data.assetImageUrl
                     )
 
                     Card(
@@ -208,9 +253,11 @@ fun DetailRiwayatPage(
                         }
 
                         DetailRiwayatState.BatasKembali -> {
-                            EnuButton(
-                                text = "Kembalikan",
-                                onClick = onKembalikanClick,
+                            // Pengembalian diproses oleh admin — user cukup datang ke kantor.
+                            Text(
+                                text = "Kembalikan barang ke kantor — pengembalian akan diproses oleh admin.",
+                                style = EnuTheme.typography.ui.labels.normalCase.base,
+                                color = EnuTheme.colors.contentDefaultSubtle,
                                 modifier = Modifier.fillMaxWidth()
                             )
                         }
@@ -246,12 +293,13 @@ fun DetailRiwayatPagePreviewLight() {
         id = "BR-001",
         assetId = "HW-0019-A",
         assetTitle = "Arduino Micro Controller",
-        assetStock = 5,
         borrowerId = "U-001",
         borrowerName = "Budi",
         status = BorrowStatus.Borrowed,
-        borrowDate = "15 Okt 26",
-        returnEstimate = "20 Okt 26"
+        requestedAt = 1_792_108_800_000L,
+        borrowDate = 1_792_108_800_000L,
+        returnEstimate = 1_792_540_800_000L,
+        reason = "Peminjaman alat untuk proyek kelas"
     )
     EnuTheme {
         DetailRiwayatPage(
@@ -260,7 +308,6 @@ fun DetailRiwayatPagePreviewLight() {
             onBottomBarItemClick = {},
             onBackClick = {},
             onScanQrClick = {},
-            onKembalikanClick = {},
             onRetryClick = {}
         )
     }

@@ -16,7 +16,7 @@ import androidx.compose.ui.unit.dp
 import dev.stefano.enuventory.ui.theme.EnuTheme
 
 enum class EnuInventoryStatus {
-    Tersedia, TidakTersedia, Maintenance
+    Tersedia, Direservasi, Maintenance
 }
 
 @Composable
@@ -35,10 +35,10 @@ fun EnuInventoryStatusBadge(
             labelText = "Tersedia"
         }
 
-        EnuInventoryStatus.TidakTersedia -> {
+        EnuInventoryStatus.Direservasi -> {
             backgroundColor = EnuTheme.colors.backgroundSignalErrorMediumDefault
             contentColor = EnuTheme.colors.contentSignalErrorOnSubtle
-            labelText = "Tidak Tersedia"
+            labelText = "Direservasi"
         }
 
         EnuInventoryStatus.Maintenance -> {
@@ -71,7 +71,7 @@ fun EnuInventoryStatusBadgePreviewLight() {
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             EnuInventoryStatusBadge(status = EnuInventoryStatus.Tersedia)
-            EnuInventoryStatusBadge(status = EnuInventoryStatus.TidakTersedia)
+            EnuInventoryStatusBadge(status = EnuInventoryStatus.Direservasi)
             EnuInventoryStatusBadge(status = EnuInventoryStatus.Maintenance)
         }
     }
@@ -86,7 +86,7 @@ fun EnuInventoryStatusBadgePreviewDark() {
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             EnuInventoryStatusBadge(status = EnuInventoryStatus.Tersedia)
-            EnuInventoryStatusBadge(status = EnuInventoryStatus.TidakTersedia)
+            EnuInventoryStatusBadge(status = EnuInventoryStatus.Direservasi)
             EnuInventoryStatusBadge(status = EnuInventoryStatus.Maintenance)
         }
     }

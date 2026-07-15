@@ -8,14 +8,14 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavDestination.Companion.hasRoute
@@ -39,12 +39,10 @@ import dev.stefano.enuventory.ui.pages.HomeUserPage
 import dev.stefano.enuventory.ui.pages.KelolaKategoriPage
 import dev.stefano.enuventory.ui.pages.KelolaUserPage
 import dev.stefano.enuventory.ui.pages.NotificationPage
-import dev.stefano.enuventory.ui.pages.PengembalianPage
 import dev.stefano.enuventory.ui.pages.ScanQRPage
 import dev.stefano.enuventory.ui.pages.SettingsAdminPage
 import dev.stefano.enuventory.ui.pages.SettingsUserPage
 import dev.stefano.enuventory.ui.pages.TambahAssetPage
-import dev.stefano.enuventory.ui.pages.UploadBuktiFotoPage
 import dev.stefano.enuventory.ui.screen.approval.ApprovalViewModel
 import dev.stefano.enuventory.ui.screen.approval.DetailRequestViewModel
 import dev.stefano.enuventory.ui.screen.asset.DetailAssetAdminViewModel
@@ -56,14 +54,13 @@ import dev.stefano.enuventory.ui.screen.auth.LoginScreen
 import dev.stefano.enuventory.ui.screen.category.KelolaKategoriViewModel
 import dev.stefano.enuventory.ui.screen.history.DetailRiwayatViewModel
 import dev.stefano.enuventory.ui.screen.history.HistoryViewModel
-import dev.stefano.enuventory.ui.screen.history.ReturnAssetViewModel
+import dev.stefano.enuventory.ui.screen.history.ScanQRViewModel
 import dev.stefano.enuventory.ui.screen.home.HomeViewModel
 import dev.stefano.enuventory.ui.screen.notification.AdminNotificationViewModel
 import dev.stefano.enuventory.ui.screen.notification.UserNotificationViewModel
 import dev.stefano.enuventory.ui.screen.settings.SettingsViewModel
 import dev.stefano.enuventory.ui.screen.user.DetailUserAdminViewModel
 import dev.stefano.enuventory.ui.screen.user.KelolaUserViewModel
-import dev.stefano.enuventory.ui.theme.EnuTheme
 
 // Tab-tab di bottom bar dianggap "sejajar" (bukan drill-down), jadi transisinya
 // cukup fade — slide terarah cuma dipakai untuk navigasi push/pop ke halaman detail.
@@ -422,10 +419,9 @@ fun EnuNavGraph(
                     onBottomBarClick(route)
                 },
                 onBackClick = { navController.popBackStack() },
-                onTambahAssetClick = { title, stock, status, category, description, imageBytes ->
+                onTambahAssetClick = { title, status, category, description, imageBytes ->
                     tambahAssetViewModel.addAsset(
                         title = title,
-                        stockStr = stock,
                         statusStr = status,
                         category = category,
                         description = description,
@@ -461,8 +457,8 @@ fun EnuNavGraph(
                     onBottomBarClick(navRoute)
                 },
                 onBackClick = { navController.popBackStack() },
-                onPinjamClick = { returnEstimate ->
-                    detailAssetUserViewModel.requestBorrow(returnEstimate)
+                onPinjamClick = { borrowDate, returnEstimate, reason ->
+                    detailAssetUserViewModel.requestBorrow(borrowDate, returnEstimate, reason)
                 },
                 onBatalkanClick = { recordId ->
                     detailAssetUserViewModel.cancelBorrow(recordId)
@@ -522,10 +518,9 @@ fun EnuNavGraph(
                     onBottomBarClick(navRoute)
                 },
                 onBackClick = { navController.popBackStack() },
-                onEditAssetClick = { title, stock, status, category, description, imageBytes ->
+                onEditAssetClick = { title, status, category, description, imageBytes ->
                     editAssetViewModel.editAsset(
                         title = title,
-                        stockStr = stock,
                         statusStr = status,
                         category = category,
                         description = description,
@@ -647,6 +642,19 @@ fun EnuNavGraph(
             val detailRiwayatViewModel: DetailRiwayatViewModel = hiltViewModel()
             val uiState by detailRiwayatViewModel.uiState.collectAsStateWithLifecycle()
 
+            // Reload tiap kali halaman ini resume -- perlu karena loadRecord() itu one-shot
+            // fetch, bukan Flow, jadi gak otomatis lihat perubahan dari ScanQR (confirmPickup).
+            val lifecycleOwner = LocalLifecycleOwner.current
+            DisposableEffect(lifecycleOwner) {
+                val observer = LifecycleEventObserver { _, event ->
+                    if (event == Lifecycle.Event.ON_RESUME) {
+                        detailRiwayatViewModel.loadRecord()
+                    }
+                }
+                lifecycleOwner.lifecycle.addObserver(observer)
+                onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+            }
+
             DetailRiwayatPage(
                 state = uiState,
                 currentRoute = currentRoute,
@@ -660,9 +668,12 @@ fun EnuNavGraph(
                     onBottomBarClick(navRoute)
                 },
                 onBackClick = { navController.popBackStack() },
-                onScanQrClick = { navController.navigate(EnuRoute.ScanQR) },
-                onKembalikanClick = {
-                    navController.navigate(EnuRoute.Pengembalian(route.recordId))
+                onScanQrClick = {
+                    (uiState as? UiState.Success)?.data?.record?.let { record ->
+                        navController.navigate(
+                            EnuRoute.ScanQR(recordId = record.id, assetId = record.assetId)
+                        )
+                    }
                 },
                 onRetryClick = { detailRiwayatViewModel.loadRecord() }
             )
@@ -674,9 +685,11 @@ fun EnuNavGraph(
             val currentRoute = navController.currentBackStackEntry?.destination?.route
             val detailRequestViewModel: DetailRequestViewModel = hiltViewModel()
             val uiState by detailRequestViewModel.uiState.collectAsStateWithLifecycle()
+            val assetImageUrl by detailRequestViewModel.assetImageUrl.collectAsStateWithLifecycle()
 
             DetailRequestPage(
                 state = uiState,
+                assetImageUrl = assetImageUrl,
                 currentRoute = currentRoute,
                 onBottomBarItemClick = { item ->
                     val navRoute = when (item.route) {
@@ -688,11 +701,24 @@ fun EnuNavGraph(
                     onBottomBarClick(navRoute)
                 },
                 onBackClick = { navController.popBackStack() },
-                onApproveClick = {
-                    detailRequestViewModel.approveRequest(onSuccess = { navController.popBackStack() })
+                onApproveConfirm = { pickupSchedule ->
+                    detailRequestViewModel.approveRequest(
+                        pickupSchedule = pickupSchedule,
+                        onSuccess = { navController.popBackStack() }
+                    )
                 },
-                onTolakClick = {
-                    detailRequestViewModel.rejectRequest(onSuccess = { navController.popBackStack() })
+                onRejectConfirm = { rejectionReason ->
+                    detailRequestViewModel.rejectRequest(
+                        rejectionReason = rejectionReason,
+                        onSuccess = { navController.popBackStack() }
+                    )
+                },
+                onReturnConfirm = { isDamaged, damageNotes ->
+                    detailRequestViewModel.completeReturn(
+                        isDamaged = isDamaged,
+                        damageNotes = damageNotes,
+                        onSuccess = { navController.popBackStack() }
+                    )
                 },
                 onRetryClick = { detailRequestViewModel.loadRecord() }
             )
@@ -701,103 +727,26 @@ fun EnuNavGraph(
         // ── Scan QR ─────────────────────────────────────────────────────────
         composable<EnuRoute.ScanQR> {
             val currentRoute = navController.currentBackStackEntry?.destination?.route
+            val scanQRViewModel: ScanQRViewModel = hiltViewModel()
+            val uiState by scanQRViewModel.uiState.collectAsStateWithLifecycle()
+            val assetTitle by scanQRViewModel.assetTitle.collectAsStateWithLifecycle()
+            val errorMessage by scanQRViewModel.errorMessage.collectAsStateWithLifecycle()
+
             ScanQRPage(
-                state = dev.stefano.enuventory.ui.pages.ScanQRState.Scanning,
+                state = uiState,
+                assetTitle = assetTitle,
+                errorMessage = errorMessage,
                 currentRoute = currentRoute,
                 onBottomBarItemClick = {},
                 onBackClick = { navController.popBackStack() },
-                onUlangiClick = {},
-                onKonfirmasiYaClick = { navController.popBackStack() }
+                onQrDetected = { scannedText -> scanQRViewModel.onQrDetected(scannedText) },
+                onConfirmClick = {
+                    scanQRViewModel.onConfirmClick(onSuccess = { navController.popBackStack() })
+                },
+                onCancelConfirm = { scanQRViewModel.onCancelConfirm() },
+                onUlangiClick = { scanQRViewModel.onUlangiClick() }
             )
         }
 
-        // ── Upload Bukti Foto ────────────────────────────────────────────────
-        composable<EnuRoute.UploadBuktiFoto> { backStackEntry ->
-            val route = backStackEntry.toRoute<EnuRoute.UploadBuktiFoto>()
-            val currentRoute = navController.currentBackStackEntry?.destination?.route
-            val returnAssetViewModel: ReturnAssetViewModel = hiltViewModel()
-            val recordState by returnAssetViewModel.recordState.collectAsStateWithLifecycle()
-            val uploadState by returnAssetViewModel.uploadState.collectAsStateWithLifecycle()
-
-            when (val state = recordState) {
-                is UiState.Success -> {
-                    val record = state.data
-                    UploadBuktiFotoPage(
-                        state = uploadState,
-                        assetTitle = record.assetTitle,
-                        assetId = record.assetId,
-                        timestamp = record.borrowDate,
-                        currentRoute = currentRoute,
-                        onBottomBarItemClick = { item ->
-                            val navRoute = when (item.route) {
-                                "home" -> EnuRoute.Home
-                                "history" -> EnuRoute.History
-                                "settings" -> EnuRoute.Settings
-                                else -> EnuRoute.Home
-                            }
-                            onBottomBarClick(navRoute)
-                        },
-                        onBackClick = { navController.popBackStack() },
-                        onCaptureClick = { returnAssetViewModel.onCapturePhoto() },
-                        onUlangiClick = { returnAssetViewModel.onUlangiCapture() },
-                        onSubmitClick = {
-                            returnAssetViewModel.submitReturn(onSuccess = {
-                                navController.navigate(EnuRoute.History) {
-                                    popUpTo(EnuRoute.History) { inclusive = true }
-                                }
-                            })
-                        }
-                    )
-                }
-                is UiState.Loading -> {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(color = EnuTheme.colors.contentBrandPrimaryDefault)
-                    }
-                }
-                else -> {
-                    // Fallback
-                }
-            }
-        }
-
-        // ── Pengembalian ─────────────────────────────────────────────────────
-        composable<EnuRoute.Pengembalian> { backStackEntry ->
-            val route = backStackEntry.toRoute<EnuRoute.Pengembalian>()
-            val currentRoute = navController.currentBackStackEntry?.destination?.route
-            val returnAssetViewModel: ReturnAssetViewModel = hiltViewModel()
-            val recordState by returnAssetViewModel.recordState.collectAsStateWithLifecycle()
-
-            when (val state = recordState) {
-                is UiState.Success -> {
-                    val record = state.data
-                    PengembalianPage(
-                        assetTitle = record.assetTitle,
-                        assetId = record.assetId,
-                        currentRoute = currentRoute,
-                        onBottomBarItemClick = { item ->
-                            val navRoute = when (item.route) {
-                                "home" -> EnuRoute.Home
-                                "history" -> EnuRoute.History
-                                "settings" -> EnuRoute.Settings
-                                else -> EnuRoute.Home
-                            }
-                            onBottomBarClick(navRoute)
-                        },
-                        onBackClick = { navController.popBackStack() },
-                        onUploadBuktiClick = {
-                            navController.navigate(EnuRoute.UploadBuktiFoto(route.recordId))
-                        }
-                    )
-                }
-                is UiState.Loading -> {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(color = EnuTheme.colors.contentBrandPrimaryDefault)
-                    }
-                }
-                else -> {
-                    // Fallback
-                }
-            }
-        }
     }
 }

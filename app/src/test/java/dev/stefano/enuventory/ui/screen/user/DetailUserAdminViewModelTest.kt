@@ -73,23 +73,25 @@ class DetailUserAdminViewModelTest {
                         id = "r1",
                         assetId = "HW-1",
                         assetTitle = "Laptop",
-                        assetStock = 1,
                         borrowerId = "1",
                         borrowerName = "Budi Santoso",
                         status = BorrowStatus.Borrowed,
-                        borrowDate = "1 Jan",
-                        returnEstimate = "8 Jan"
+                        requestedAt = 1_792_195_200_000L,
+                        borrowDate = 1_792_195_200_000L,
+                        returnEstimate = 1_792_713_600_000L,
+                        reason = "Kebutuhan proyek"
                     ),
                     BorrowRecord(
                         id = "r2",
                         assetId = "HW-2",
                         assetTitle = "Mouse",
-                        assetStock = 1,
                         borrowerId = "2",
                         borrowerName = "Someone Else",
                         status = BorrowStatus.Borrowed,
-                        borrowDate = "1 Jan",
-                        returnEstimate = "8 Jan"
+                        requestedAt = 1_792_195_200_000L,
+                        borrowDate = 1_792_195_200_000L,
+                        returnEstimate = 1_792_713_600_000L,
+                        reason = "Kebutuhan proyek"
                     )
                 )
             )

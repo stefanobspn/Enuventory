@@ -10,9 +10,12 @@ class RequestBorrowUseCase @Inject constructor(
     suspend operator fun invoke(
         assetId: String,
         assetTitle: String,
-        assetStock: Int,
         userId: String,
         userName: String,
-        returnEstimate: String
-    ) = borrowRepository.requestBorrow(assetId, assetTitle, assetStock, userId, userName, returnEstimate)
+        borrowDate: Long,
+        returnEstimate: Long,
+        reason: String
+    ) = borrowRepository.requestBorrow(
+        assetId, assetTitle, userId, userName, borrowDate, returnEstimate, reason
+    )
 }

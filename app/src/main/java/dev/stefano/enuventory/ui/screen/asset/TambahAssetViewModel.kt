@@ -62,17 +62,15 @@ class TambahAssetViewModel @Inject constructor(
 
     fun addAsset(
         title: String,
-        stockStr: String,
         statusStr: String,
         category: String,
         description: String,
         imageBytes: ByteArray? = null,
         onSuccess: () -> Unit
     ) {
-        val stock = stockStr.toIntOrNull() ?: 0
         val status = when (statusStr) {
             "Tersedia" -> AssetStatus.Available
-            "Tidak Tersedia" -> AssetStatus.Unavailable
+            "Direservasi" -> AssetStatus.Reserved
             else -> AssetStatus.Maintenance
         }
 
@@ -84,7 +82,6 @@ class TambahAssetViewModel @Inject constructor(
                 val asset = Asset(
                     id = assetId,
                     title = title,
-                    stock = stock,
                     status = status,
                     category = category.ifBlank { "All" },
                     description = description,

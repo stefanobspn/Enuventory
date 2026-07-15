@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.stefano.enuventory.domain.model.Asset
+import dev.stefano.enuventory.domain.model.AssetStatus
 import dev.stefano.enuventory.domain.model.BorrowStatus
 import dev.stefano.enuventory.domain.usecase.GetAssetsUseCase
 import dev.stefano.enuventory.domain.usecase.GetCurrentUserUseCase
@@ -18,8 +19,8 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -53,8 +54,14 @@ class DetailAssetUserViewModel @Inject constructor(
                         val activeRecord = history.find { it.assetId == asset.id && !it.isFinished }
                         val relationshipState = when (activeRecord?.status) {
                             BorrowStatus.Pending -> DetailAssetUserState.MenungguPersetujuan
+                            BorrowStatus.WaitingPickup -> DetailAssetUserState.MenungguPengambilan
                             BorrowStatus.Borrowed -> DetailAssetUserState.SedangDipinjam
-                            else -> DetailAssetUserState.Normal
+                            // Model per-unit: hanya asset Available yang bisa diajukan pinjam
+                            else -> if (asset.status == AssetStatus.Available) {
+                                DetailAssetUserState.Normal
+                            } else {
+                                DetailAssetUserState.TidakTersedia
+                            }
                         }
                         UiState.Success(
                             DetailAssetUiModel(
@@ -73,19 +80,16 @@ class DetailAssetUserViewModel @Inject constructor(
             initialValue = UiState.Loading
         )
 
-    fun requestBorrow(returnEstimate: String) {
-        android.util.Log.d("DetailAssetUser", "requestBorrow called with: $returnEstimate")
+    fun requestBorrow(borrowDate: Long, returnEstimate: Long, reason: String) {
         viewModelScope.launch {
-            android.util.Log.d("DetailAssetUser", "launching requestBorrow coroutine")
             val user = getCurrentUserUseCase().filterNotNull().firstOrNull()
-            android.util.Log.d("DetailAssetUser", "retrieved user: $user")
             if (user == null) {
                 android.util.Log.e("DetailAssetUser", "User is null!")
                 return@launch
             }
 
             val successState = uiState.value as? UiState.Success ?: run {
-                android.util.Log.e("DetailAssetUser", "UiState is not Success, current state is: ${uiState.value}")
+                android.util.Log.e("DetailAssetUser", "UiState is not Success: ${uiState.value}")
                 return@launch
             }
             val asset = successState.data.asset
@@ -94,12 +98,12 @@ class DetailAssetUserViewModel @Inject constructor(
                 requestBorrowUseCase(
                     assetId = assetId,
                     assetTitle = asset.title,
-                    assetStock = asset.stock,
                     userId = user.uid,
                     userName = user.name,
-                    returnEstimate = returnEstimate
+                    borrowDate = borrowDate,
+                    returnEstimate = returnEstimate,
+                    reason = reason
                 )
-                android.util.Log.d("DetailAssetUser", "requestBorrowUseCase completed successfully")
             } catch (e: Exception) {
                 android.util.Log.e("DetailAssetUser", "Gagal pinjam: ${e.message}", e)
             }
@@ -109,11 +113,15 @@ class DetailAssetUserViewModel @Inject constructor(
     fun cancelBorrow(recordId: String) {
         viewModelScope.launch {
             try {
-                rejectRequestUseCase(recordId)
+                rejectRequestUseCase(recordId, CANCELLED_BY_BORROWER_REASON)
             } catch (e: Exception) {
                 // handle error
             }
         }
+    }
+
+    companion object {
+        const val CANCELLED_BY_BORROWER_REASON = "Dibatalkan oleh peminjam"
     }
 }
 

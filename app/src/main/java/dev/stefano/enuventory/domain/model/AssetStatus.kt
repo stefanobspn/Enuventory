@@ -6,6 +6,18 @@ package dev.stefano.enuventory.domain.model
  */
 enum class AssetStatus {
     Available,
-    Unavailable,
-    Maintenance
+    Reserved,
+    Maintenance;
+
+    companion object {
+        /**
+         * Parse string dari Firestore secara aman.
+         * Dokumen lama menyimpan "Unavailable" — dipetakan ke [Reserved].
+         */
+        fun fromRaw(raw: String?): AssetStatus = when (raw) {
+            "Reserved", "Unavailable" -> Reserved
+            "Maintenance" -> Maintenance
+            else -> Available
+        }
+    }
 }
