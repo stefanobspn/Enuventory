@@ -97,9 +97,3 @@ app/src/main/java/dev/stefano/enuventory/
     ├── theme/             # Compose theme
     └── util/              # UI mappers
 ```
-
-## Contributing
-
-Code identifiers (classes, functions, variables) are written in English; comments and in-app
-user-facing strings/UI labels are written in Bahasa Indonesia. Keep this convention when touching
-existing files — see [CLAUDE.md](CLAUDE.md) for details.
