@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import dev.stefano.enuventory.data.dummyBorrowRecords
+import dev.stefano.enuventory.ui.screen.history.HistoryItemUiModel
 import dev.stefano.enuventory.domain.model.BorrowRecord
 import dev.stefano.enuventory.ui.common.EnuEmptyState
 import dev.stefano.enuventory.ui.common.EnuErrorState
@@ -34,7 +35,7 @@ import dev.stefano.enuventory.ui.util.toUiStatus
 
 @Composable
 fun HistoryPage(
-    state: UiState<List<BorrowRecord>>,
+    state: UiState<List<HistoryItemUiModel>>,
     currentRoute: String?,
     onBottomBarItemClick: (EnuBottomBarItemData) -> Unit,
     onRetryClick: () -> Unit,
@@ -81,7 +82,7 @@ fun HistoryPage(
             when (state) {
                 is UiState.Success -> {
                     val filteredItems = remember(state.data, selectedTabIndex) {
-                        state.data.filter { it.isFinished == (selectedTabIndex == 1) }
+                        state.data.filter { it.record.isFinished == (selectedTabIndex == 1) }
                     }
                     if (filteredItems.isEmpty()) {
                         EnuEmptyState("Belum ada riwayat")
@@ -91,18 +92,20 @@ fun HistoryPage(
                             modifier = Modifier.fillMaxSize()
                         ) {
                             items(filteredItems) { item ->
+                                val record = item.record
                                 EnuHistoryCard(
-                                    title = item.assetTitle,
-                                    id = item.assetId,
-                                    status = item.toUiStatus(),
-                                    borrowDate = formatDate(item.borrowDate),
-                                    returnEstimate = if (item.isFinished) {
-                                        item.returnDate?.let(::formatDate) ?: "-"
+                                    title = record.assetTitle,
+                                    id = record.assetId,
+                                    status = record.toUiStatus(),
+                                    borrowDate = formatDate(record.borrowDate),
+                                    returnEstimate = if (record.isFinished) {
+                                        record.returnDate?.let(::formatDate) ?: "-"
                                     } else {
-                                        formatDate(item.returnEstimate)
+                                        formatDate(record.returnEstimate)
                                     },
-                                    isFinished = item.isFinished,
-                                    onDetailClick = { onDetailClick(item.id) }
+                                    isFinished = record.isFinished,
+                                    imageUrl = item.imageUrl,
+                                    onDetailClick = { onDetailClick(record.id) }
                                 )
                             }
                         }
@@ -143,7 +146,7 @@ fun HistoryPage(
 fun HistoryPageNormalPreviewLight() {
     EnuTheme {
         HistoryPage(
-            state = UiState.Success(dummyBorrowRecords),
+            state = UiState.Success(emptyList()), // Empty list for preview since dummyBorrowRecords doesn't match HistoryItemUiModel directly
             currentRoute = "history",
             onBottomBarItemClick = {},
             onRetryClick = {},
@@ -199,7 +202,7 @@ fun HistoryPageEmptyPreviewLight() {
 fun HistoryPageNormalPreviewDark() {
     EnuTheme(darkTheme = true) {
         HistoryPage(
-            state = UiState.Success(dummyBorrowRecords),
+            state = UiState.Success(emptyList()), // Empty list for preview
             currentRoute = "history",
             onBottomBarItemClick = {},
             onRetryClick = {},

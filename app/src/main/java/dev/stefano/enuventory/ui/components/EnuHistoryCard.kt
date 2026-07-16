@@ -24,6 +24,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import dev.stefano.enuventory.ui.theme.EnuTheme
 import dev.stefano.enuventory.ui.util.shimmerLoading
+import androidx.compose.foundation.layout.fillMaxSize
 
 @Composable
 fun EnuHistoryCard(
@@ -35,7 +36,8 @@ fun EnuHistoryCard(
     onDetailClick: () -> Unit,
     modifier: Modifier = Modifier,
     isFinished: Boolean = false,
-    isLoading: Boolean = false
+    isLoading: Boolean = false,
+    imageUrl: String? = null
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -61,7 +63,16 @@ fun EnuHistoryCard(
                             if (isLoading) Color.Transparent
                             else Color.White
                         )
-                )
+                ) {
+                    if (!isLoading && imageUrl != null) {
+                        coil3.compose.AsyncImage(
+                            model = imageUrl,
+                            contentDescription = title,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                        )
+                    }
+                }
 
                 Spacer(Modifier.width(16.dp))
 
