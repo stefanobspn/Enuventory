@@ -47,7 +47,7 @@ fun EnuBottomBar(
                 .windowInsetsPadding(WindowInsets.navigationBars), // padding buat nav bar system
         ) {
             navigationItems.forEach { item ->
-                val isSelected = currentRoute == item.route
+                val isSelected = currentRoute?.substringAfterLast('.')?.lowercase() == item.route.lowercase()
 
                 EnuBottomBarNavItem(
                     icon = item.icon,

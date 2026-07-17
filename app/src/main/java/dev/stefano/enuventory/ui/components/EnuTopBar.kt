@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -26,6 +28,7 @@ fun EnuTopBar(
     modifier: Modifier = Modifier,
     showBack: Boolean = false,
     showNotification: Boolean = false,
+    notificationCount: Int = 0,
     onBackClick: () -> Unit = {},
     onNotificationClick: () -> Unit = {}
 ) {
@@ -52,11 +55,21 @@ fun EnuTopBar(
         actions = {
             if (showNotification) {
                 IconButton(onClick = onNotificationClick) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_notification),
-                        contentDescription = "Notification",
-                        tint = EnuTheme.colors.contentDefaultPrimary
-                    )
+                    BadgedBox(
+                        badge = {
+                            if (notificationCount > 0) {
+                                Badge {
+                                    Text(if (notificationCount > 99) "99+" else notificationCount.toString())
+                                }
+                            }
+                        }
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_notification),
+                            contentDescription = "Notification",
+                            tint = EnuTheme.colors.contentDefaultPrimary
+                        )
+                    }
                 }
             }
         },
@@ -84,6 +97,12 @@ fun EnuTopBarPreviewLight() {
             )
 
             EnuTopBar(
+                title = "Page",
+                showNotification = true,
+                notificationCount = 3
+            )
+
+            EnuTopBar(
                 title = "Page"
             )
 
@@ -106,6 +125,12 @@ fun EnuTopBarPreviewDark() {
             EnuTopBar(
                 title = "Page",
                 showNotification = true
+            )
+
+            EnuTopBar(
+                title = "Page",
+                showNotification = true,
+                notificationCount = 3
             )
 
             EnuTopBar(

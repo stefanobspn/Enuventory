@@ -1,5 +1,6 @@
 package dev.stefano.enuventory.ui.pages
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -16,24 +17,24 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import dev.stefano.enuventory.R
-import dev.stefano.enuventory.data.dummyInventoryItems
+import dev.stefano.enuventory.data.dummyAssets
+import dev.stefano.enuventory.domain.model.Asset
+import dev.stefano.enuventory.ui.common.EnuEmptyState
+import dev.stefano.enuventory.ui.common.EnuErrorState
+import dev.stefano.enuventory.ui.common.UiState
 import dev.stefano.enuventory.ui.components.EnuBottomBar
 import dev.stefano.enuventory.ui.components.EnuBottomBarItemData
-import dev.stefano.enuventory.ui.components.EnuButton
 import dev.stefano.enuventory.ui.components.EnuCategoryBadge
 import dev.stefano.enuventory.ui.components.EnuCategoryBadgeState
 import dev.stefano.enuventory.ui.components.EnuInventoryCard
@@ -41,22 +42,22 @@ import dev.stefano.enuventory.ui.components.EnuInventoryStatus
 import dev.stefano.enuventory.ui.components.EnuSearchField
 import dev.stefano.enuventory.ui.components.EnuTopBar
 import dev.stefano.enuventory.ui.theme.EnuTheme
-
-enum class HomeAdminState {
-    Normal, Loading, Error, Empty
-}
+import dev.stefano.enuventory.ui.util.toUiStatus
 
 @Composable
 fun HomeAdminPage(
-    state: HomeAdminState,
+    state: UiState<List<Asset>>,
+    categories: List<String>,
     currentRoute: String?,
     onBottomBarItemClick: (EnuBottomBarItemData) -> Unit,
     onRetryClick: () -> Unit,
     onFabClick: () -> Unit,
-    modifier: Modifier = Modifier
+    onAssetClick: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    notificationCount: Int = 0,
+    onNotificationClick: () -> Unit = {}
 ) {
     var searchQuery by remember { mutableStateOf("") }
-    val categories = listOf("All", "Elektro", "IoT")
     var selectedCategoryIndex by remember { mutableIntStateOf(0) }
 
     Scaffold(
@@ -65,7 +66,8 @@ fun HomeAdminPage(
             EnuTopBar(
                 title = "Home",
                 showNotification = true,
-                onNotificationClick = { }
+                notificationCount = notificationCount,
+                onNotificationClick = onNotificationClick
             )
         },
         bottomBar = {
@@ -98,7 +100,7 @@ fun HomeAdminPage(
                 .padding(innerPadding)
                 .padding(horizontal = 16.dp)
         ) {
-            if (state != HomeAdminState.Error) {
+            if (state !is UiState.Error) {
                 Spacer(modifier = Modifier.height(16.dp))
 
                 EnuSearchField(
@@ -114,7 +116,7 @@ fun HomeAdminPage(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     items(categories.size) { index ->
-                        val badgeState = if (state == HomeAdminState.Loading) {
+                        val badgeState = if (state is UiState.Loading) {
                             EnuCategoryBadgeState.Loading
                         } else if (index == selectedCategoryIndex) {
                             EnuCategoryBadgeState.Selected
@@ -134,30 +136,46 @@ fun HomeAdminPage(
             }
 
             when (state) {
-                HomeAdminState.Normal -> {
-                    LazyColumn(
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                        modifier = Modifier.fillMaxSize()
-                    ) {
-                        items(dummyInventoryItems) { item ->
-                            EnuInventoryCard(
-                                title = item.title,
-                                id = item.id,
-                                stock = item.stock,
-                                status = item.status
-                            )
+                is UiState.Success -> {
+                    val selectedCategory = categories.getOrElse(selectedCategoryIndex) {
+                        categories.firstOrNull() ?: "All"
+                    }
+                    val filteredAssets = remember(state.data, selectedCategory, searchQuery) {
+                        state.data.filter { item ->
+                            val matchesCategory =
+                                selectedCategoryIndex == 0 || item.category.lowercase() == selectedCategory.lowercase()
+                            val matchesSearch = searchQuery.isBlank() || item.title.lowercase().contains(searchQuery.lowercase()) || item.id.lowercase().contains(searchQuery.lowercase())
+                            matchesCategory && matchesSearch
+                        }
+                    }
+                    if (filteredAssets.isEmpty()) {
+                        EnuEmptyState("Aset tidak ditemukan")
+                    } else {
+                        LazyColumn(
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                            modifier = Modifier.fillMaxSize()
+                        ) {
+                            items(filteredAssets) { item ->
+                                EnuInventoryCard(
+                                    title = item.title,
+                                    id = item.id,
+                                    status = item.status.toUiStatus(),
+                                    imageUrl = item.imageUrl,
+                                    modifier = Modifier.clickable { onAssetClick(item.id) }
+                                )
+                            }
                         }
                     }
                 }
 
-                HomeAdminState.Loading -> {
+                is UiState.Loading -> {
                     LazyColumn(
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                         modifier = Modifier.fillMaxSize()
                     ) {
                         items(3) {
                             EnuInventoryCard(
-                                title = "", id = "", stock = 0,
+                                title = "", id = "",
                                 status = EnuInventoryStatus.Tersedia,
                                 isLoading = true
                             )
@@ -165,60 +183,12 @@ fun HomeAdminPage(
                     }
                 }
 
-                HomeAdminState.Error -> {
-                    Column(
-                        modifier = Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.Center,
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_error),
-                            contentDescription = "Error",
-                            tint = EnuTheme.colors.contentSignalErrorDefault,
-                            modifier = Modifier.size(56.dp)
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            text = "Terjadi Kesalahan",
-                            style = EnuTheme.typography.ui.labels.normalCase.large,
-                            color = EnuTheme.colors.contentDefaultPrimary
-                        )
-                        Text(
-                            text = "error log",
-                            style = EnuTheme.typography.ui.labels.normalCase.small,
-                            color = EnuTheme.colors.contentSignalErrorDefault,
-                            modifier = Modifier.padding(vertical = 4.dp)
-                        )
-                        Spacer(modifier = Modifier.height(24.dp))
-
-                        EnuButton(
-                            text = "Coba lagi",
-                            onClick = onRetryClick,
-                            modifier = Modifier.fillMaxWidth(0.6f)
-                        )
-                    }
+                is UiState.Error -> {
+                    EnuErrorState(errorMessage = state.message, onRetryClick = onRetryClick)
                 }
 
-                HomeAdminState.Empty -> {
-                    Column(
-                        modifier = Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.Center,
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_info),
-                            contentDescription = "Empty",
-                            tint = EnuTheme.colors.contentBrandPrimaryDefault,
-                            modifier = Modifier.size(56.dp)
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            text = "Belum ada asset yang ditambahkan",
-                            style = EnuTheme.typography.ui.labels.normalCase.base,
-                            color = EnuTheme.colors.contentDefaultPrimary,
-                            textAlign = TextAlign.Center
-                        )
-                    }
+                is UiState.Empty -> {
+                    EnuEmptyState(message = "Belum ada asset yang ditambahkan")
                 }
             }
         }
@@ -230,11 +200,13 @@ fun HomeAdminPage(
 fun HomeAdminPageNormalPreviewLight() {
     EnuTheme {
         HomeAdminPage(
-            state = HomeAdminState.Normal,
+            state = UiState.Success(dummyAssets),
+            categories = listOf("All", "Elektro", "IoT"),
             currentRoute = "home",
             onBottomBarItemClick = {},
             onRetryClick = {},
-            onFabClick = {}
+            onFabClick = {},
+            onAssetClick = {}
         )
     }
 }
@@ -244,11 +216,13 @@ fun HomeAdminPageNormalPreviewLight() {
 fun HomeAdminPageNormalPreviewDark() {
     EnuTheme(darkTheme = true) {
         HomeAdminPage(
-            state = HomeAdminState.Normal,
+            state = UiState.Success(dummyAssets),
+            categories = listOf("All", "Elektro", "IoT"),
             currentRoute = "home",
             onBottomBarItemClick = {},
             onRetryClick = {},
-            onFabClick = {}
+            onFabClick = {},
+            onAssetClick = {}
         )
     }
 }

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "132041260515",
+    "project_id": "enuventory-f4bd6",
+    "storage_bucket": "enuventory-f4bd6.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:132041260515:android:1b413852fb07651e7174d6",
+        "android_client_info": {
+          "package_name": "dev.stefano.enuventory"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBavr-Lb2jxEUXbaUpjddlLC85z41Ja3tc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

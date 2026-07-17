@@ -4,44 +4,38 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import dev.stefano.enuventory.R
-import dev.stefano.enuventory.data.dummyHistoryItems
+import dev.stefano.enuventory.data.dummyBorrowRecords
+import dev.stefano.enuventory.ui.screen.history.HistoryItemUiModel
+import dev.stefano.enuventory.domain.model.BorrowRecord
+import dev.stefano.enuventory.ui.common.EnuEmptyState
+import dev.stefano.enuventory.ui.common.EnuErrorState
+import dev.stefano.enuventory.ui.common.UiState
 import dev.stefano.enuventory.ui.components.EnuBorrowStatus
 import dev.stefano.enuventory.ui.components.EnuBottomBar
 import dev.stefano.enuventory.ui.components.EnuBottomBarItemData
-import dev.stefano.enuventory.ui.components.EnuButton
 import dev.stefano.enuventory.ui.components.EnuHistoryCard
 import dev.stefano.enuventory.ui.components.EnuTab
 import dev.stefano.enuventory.ui.components.EnuTopBar
 import dev.stefano.enuventory.ui.theme.EnuTheme
-
-enum class HistoryPageState {
-    Normal, Loading, Error, Empty
-}
+import dev.stefano.enuventory.ui.util.formatDate
+import dev.stefano.enuventory.ui.util.toUiStatus
 
 @Composable
 fun HistoryPage(
-    state: HistoryPageState,
+    state: UiState<List<HistoryItemUiModel>>,
     currentRoute: String?,
     onBottomBarItemClick: (EnuBottomBarItemData) -> Unit,
     onRetryClick: () -> Unit,
@@ -51,11 +45,6 @@ fun HistoryPage(
 ) {
     val tabTitles = listOf("Aktif", "Selesai")
     var selectedTabIndex by remember { mutableIntStateOf(0) }
-
-    // Memfilter data menggunakan parameter boolean isFinished dari model data barumu
-    val filteredItems = remember(selectedTabIndex) {
-        dummyHistoryItems.filter { it.isFinished == (selectedTabIndex == 1) }
-    }
 
     Scaffold(
         modifier = modifier,
@@ -91,44 +80,46 @@ fun HistoryPage(
             Spacer(modifier = Modifier.height(24.dp))
 
             when (state) {
-                HistoryPageState.Normal -> {
+                is UiState.Success -> {
+                    val filteredItems = remember(state.data, selectedTabIndex) {
+                        state.data.filter { it.record.isFinished == (selectedTabIndex == 1) }
+                    }
                     if (filteredItems.isEmpty()) {
-                        HistoryEmptyState()
+                        EnuEmptyState("Belum ada riwayat")
                     } else {
                         LazyColumn(
                             verticalArrangement = Arrangement.spacedBy(16.dp),
                             modifier = Modifier.fillMaxSize()
                         ) {
-                            // 🌟 PERBAIKAN: Memakai filteredItems hasil saringan tab aktif/selesai
                             items(filteredItems) { item ->
+                                val record = item.record
                                 EnuHistoryCard(
-                                    title = item.title,
-                                    id = item.id,
-                                    stock = item.stock,
-                                    status = item.status,
-                                    borrowDate = item.borrowDate,
-                                    // 🌟 PERBAIKAN: Jika selesai, oper returnDate (atau fallback "-"). Jika belum, pakai returnEstimate.
-                                    returnEstimate = if (item.isFinished) {
-                                        item.returnDate ?: "-"
+                                    title = record.assetTitle,
+                                    id = record.assetId,
+                                    status = record.toUiStatus(),
+                                    borrowDate = formatDate(record.borrowDate),
+                                    returnEstimate = if (record.isFinished) {
+                                        record.returnDate?.let(::formatDate) ?: "-"
                                     } else {
-                                        item.returnEstimate
+                                        formatDate(record.returnEstimate)
                                     },
-                                    isFinished = item.isFinished,
-                                    onDetailClick = { onDetailClick(item.id) }
+                                    isFinished = record.isFinished,
+                                    imageUrl = item.imageUrl,
+                                    onDetailClick = { onDetailClick(record.id) }
                                 )
                             }
                         }
                     }
                 }
 
-                HistoryPageState.Loading -> {
+                is UiState.Loading -> {
                     LazyColumn(
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                         modifier = Modifier.fillMaxSize()
                     ) {
                         items(2) {
                             EnuHistoryCard(
-                                title = "", id = "", stock = 0,
+                                title = "", id = "",
                                 status = EnuBorrowStatus.Menunggu,
                                 borrowDate = "", returnEstimate = "",
                                 onDetailClick = {},
@@ -138,82 +129,24 @@ fun HistoryPage(
                     }
                 }
 
-                HistoryPageState.Error -> {
-                    HistoryErrorState(onRetryClick = onRetryClick)
+                is UiState.Error -> {
+                    EnuErrorState(errorMessage = state.message, onRetryClick = onRetryClick)
                 }
 
-                HistoryPageState.Empty -> {
-                    HistoryEmptyState()
+                is UiState.Empty -> {
+                    EnuEmptyState(message = "Belum ada riwayat")
                 }
             }
         }
     }
 }
 
-@Composable
-private fun HistoryEmptyState() {
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Icon(
-            painter = painterResource(id = R.drawable.ic_info),
-            contentDescription = "Empty",
-            tint = EnuTheme.colors.contentBrandPrimaryDefault,
-            modifier = Modifier.size(56.dp)
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        Text(
-            text = "Belum ada riwayat",
-            style = EnuTheme.typography.ui.labels.normalCase.base,
-            color = EnuTheme.colors.contentDefaultPrimary,
-            textAlign = TextAlign.Center
-        )
-    }
-}
-
-@Composable
-private fun HistoryErrorState(onRetryClick: () -> Unit) {
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Icon(
-            painter = painterResource(id = R.drawable.ic_error),
-            contentDescription = "Error",
-            tint = EnuTheme.colors.contentSignalErrorDefault,
-            modifier = Modifier.size(56.dp)
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        Text(
-            text = "Terjadi Kesalahan",
-            style = EnuTheme.typography.ui.labels.normalCase.large,
-            color = EnuTheme.colors.contentDefaultPrimary
-        )
-        Text(
-            text = "error log",
-            style = EnuTheme.typography.ui.labels.normalCase.small,
-            color = EnuTheme.colors.contentSignalErrorDefault,
-            modifier = Modifier.padding(vertical = 4.dp)
-        )
-        Spacer(modifier = Modifier.height(24.dp))
-        EnuButton(
-            text = "Coba lagi",
-            onClick = onRetryClick,
-            modifier = Modifier.fillMaxWidth(0.6f)
-        )
-    }
-}
-
-
 @Preview(name = "Light Normal")
 @Composable
 fun HistoryPageNormalPreviewLight() {
     EnuTheme {
         HistoryPage(
-            state = HistoryPageState.Normal,
+            state = UiState.Success(emptyList()), // Empty list for preview since dummyBorrowRecords doesn't match HistoryItemUiModel directly
             currentRoute = "history",
             onBottomBarItemClick = {},
             onRetryClick = {},
@@ -227,7 +160,7 @@ fun HistoryPageNormalPreviewLight() {
 fun HistoryPageLoadingPreviewLight() {
     EnuTheme {
         HistoryPage(
-            state = HistoryPageState.Loading,
+            state = UiState.Loading,
             currentRoute = "history",
             onBottomBarItemClick = {},
             onRetryClick = {},
@@ -241,7 +174,7 @@ fun HistoryPageLoadingPreviewLight() {
 fun HistoryPageErrorPreviewLight() {
     EnuTheme {
         HistoryPage(
-            state = HistoryPageState.Error,
+            state = UiState.Error("Terjadi kesalahan memuat data"),
             currentRoute = "history",
             onBottomBarItemClick = {},
             onRetryClick = {},
@@ -255,7 +188,7 @@ fun HistoryPageErrorPreviewLight() {
 fun HistoryPageEmptyPreviewLight() {
     EnuTheme {
         HistoryPage(
-            state = HistoryPageState.Empty,
+            state = UiState.Empty,
             currentRoute = "history",
             onBottomBarItemClick = {},
             onRetryClick = {},
@@ -269,49 +202,7 @@ fun HistoryPageEmptyPreviewLight() {
 fun HistoryPageNormalPreviewDark() {
     EnuTheme(darkTheme = true) {
         HistoryPage(
-            state = HistoryPageState.Normal,
-            currentRoute = "history",
-            onBottomBarItemClick = {},
-            onRetryClick = {},
-            onDetailClick = {}
-        )
-    }
-}
-
-@Preview(name = "Dark Loading")
-@Composable
-fun HistoryPageLoadingPreviewDark() {
-    EnuTheme(darkTheme = true) {
-        HistoryPage(
-            state = HistoryPageState.Loading,
-            currentRoute = "history",
-            onBottomBarItemClick = {},
-            onRetryClick = {},
-            onDetailClick = {}
-        )
-    }
-}
-
-@Preview(name = "Dark Error")
-@Composable
-fun HistoryPageErrorPreviewDark() {
-    EnuTheme(darkTheme = true) {
-        HistoryPage(
-            state = HistoryPageState.Error,
-            currentRoute = "history",
-            onBottomBarItemClick = {},
-            onRetryClick = {},
-            onDetailClick = {}
-        )
-    }
-}
-
-@Preview(name = "Dark Empty")
-@Composable
-fun HistoryPageEmptyPreviewDark() {
-    EnuTheme(darkTheme = true) {
-        HistoryPage(
-            state = HistoryPageState.Empty,
+            state = UiState.Success(emptyList()), // Empty list for preview
             currentRoute = "history",
             onBottomBarItemClick = {},
             onRetryClick = {},

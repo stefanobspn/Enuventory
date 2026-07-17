@@ -1,35 +1,30 @@
 package dev.stefano.enuventory.data
 
-import dev.stefano.enuventory.ui.components.EnuInventoryStatus
+import dev.stefano.enuventory.domain.model.Asset
+import dev.stefano.enuventory.domain.model.AssetStatus
 
-data class InventoryItem(
-    val id: String,
-    val title: String,
-    val stock: Int,
-    val status: EnuInventoryStatus,
-    val category: String
-)
-
-val dummyInventoryItems = listOf(
-    InventoryItem(
-        "HW-0019-A",
-        "Arduino Micro Controller",
-        5,
-        EnuInventoryStatus.Tersedia,
-        "Elektro"
+// TODO: File ini bersifat sementara untuk dummy data selama belum ada repository.
+// Akan dihapus saat AssetRepository sudah diimplementasikan.
+val dummyAssets = listOf(
+    Asset(
+        id = "HW-0019-A",
+        title = "Arduino Micro Controller",
+        status = AssetStatus.Available,
+        category = "Elektro",
+        description = "Mikrokontroler serbaguna untuk prototyping."
     ),
-    InventoryItem(
-        "HW-0020-B",
-        "Raspberry Pi 4 Model B",
-        2,
-        EnuInventoryStatus.TidakTersedia,
-        "IoT"
+    Asset(
+        id = "HW-0020-B",
+        title = "Raspberry Pi 4 Model B",
+        status = AssetStatus.Reserved,
+        category = "IoT",
+        description = "Single-board computer dengan RAM 4GB."
     ),
-    InventoryItem(
-        "HW-0021-C",
-        "Sensor Ultrasonik HC-SR04",
-        12,
-        EnuInventoryStatus.Maintenance,
-        "Elektro"
+    Asset(
+        id = "HW-0021-C",
+        title = "Sensor Ultrasonik HC-SR04",
+        status = AssetStatus.Maintenance,
+        category = "Elektro",
+        description = "Sensor jarak ultrasonik dengan range 2-400cm."
     )
 )

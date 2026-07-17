@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -20,8 +21,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import coil3.compose.AsyncImage
 import dev.stefano.enuventory.ui.theme.EnuTheme
 import dev.stefano.enuventory.ui.util.shimmerLoading
 
@@ -29,9 +32,9 @@ import dev.stefano.enuventory.ui.util.shimmerLoading
 fun EnuInventoryCard(
     title: String,
     id: String,
-    stock: Int,
     status: EnuInventoryStatus,
     modifier: Modifier = Modifier,
+    imageUrl: String? = null,
     isLoading: Boolean = false
 ) {
     Card(
@@ -56,7 +59,16 @@ fun EnuInventoryCard(
                         if (isLoading) Color.Transparent
                         else Color.White
                     )
-            )
+            ) {
+                if (!isLoading && imageUrl != null) {
+                    AsyncImage(
+                        model = imageUrl,
+                        contentDescription = title,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                }
+            }
 
             Spacer(Modifier.width(16.dp))
 
@@ -104,12 +116,6 @@ fun EnuInventoryCard(
                         style = EnuTheme.typography.ui.labels.normalCase.small,
                         color = EnuTheme.colors.contentDefaultSubtle
                     )
-                    Text(
-                        text = "Stock: $stock",
-                        style = EnuTheme.typography.ui.labels.normalCase.small,
-                        color = EnuTheme.colors.contentDefaultSubtle
-                    )
-
                     Spacer(modifier = Modifier.height(4.dp))
 
                     EnuInventoryStatusBadge(status = status)
@@ -130,7 +136,6 @@ fun EnuInventoryCardPreviewLight() {
             EnuInventoryCard(
                 title = "Arduino Micro Controller",
                 id = "HW-0019-A",
-                stock = 5,
                 status = EnuInventoryStatus.Tersedia,
                 isLoading = false
             )
@@ -138,7 +143,6 @@ fun EnuInventoryCardPreviewLight() {
             EnuInventoryCard(
                 title = "",
                 id = "",
-                stock = 0,
                 status = EnuInventoryStatus.Tersedia,
                 isLoading = true
             )
@@ -157,7 +161,6 @@ fun EnuInventoryCardPreviewDark() {
             EnuInventoryCard(
                 title = "Arduino Micro Controller",
                 id = "HW-0019-A",
-                stock = 5,
                 status = EnuInventoryStatus.Tersedia,
                 isLoading = false
             )
@@ -165,7 +168,6 @@ fun EnuInventoryCardPreviewDark() {
             EnuInventoryCard(
                 title = "",
                 id = "",
-                stock = 0,
                 status = EnuInventoryStatus.Tersedia,
                 isLoading = true
             )

@@ -24,19 +24,20 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import dev.stefano.enuventory.ui.theme.EnuTheme
 import dev.stefano.enuventory.ui.util.shimmerLoading
+import androidx.compose.foundation.layout.fillMaxSize
 
 @Composable
 fun EnuHistoryCard(
     title: String,
     id: String,
-    stock: Int,
     status: EnuBorrowStatus,
     borrowDate: String,
     returnEstimate: String,
     onDetailClick: () -> Unit,
     modifier: Modifier = Modifier,
     isFinished: Boolean = false,
-    isLoading: Boolean = false
+    isLoading: Boolean = false,
+    imageUrl: String? = null
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -62,7 +63,16 @@ fun EnuHistoryCard(
                             if (isLoading) Color.Transparent
                             else Color.White
                         )
-                )
+                ) {
+                    if (!isLoading && imageUrl != null) {
+                        coil3.compose.AsyncImage(
+                            model = imageUrl,
+                            contentDescription = title,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                        )
+                    }
+                }
 
                 Spacer(Modifier.width(16.dp))
 
@@ -110,12 +120,6 @@ fun EnuHistoryCard(
                             style = EnuTheme.typography.ui.labels.normalCase.small,
                             color = EnuTheme.colors.contentDefaultSubtle
                         )
-                        Text(
-                            text = "Stock: $stock",
-                            style = EnuTheme.typography.ui.labels.normalCase.small,
-                            color = EnuTheme.colors.contentDefaultSubtle
-                        )
-
                         Spacer(Modifier.height(4.dp))
 
                         EnuBorrowStatusBadge(status = status)
@@ -224,7 +228,6 @@ fun EnuHistoryCardPreviewLight() {
             EnuHistoryCard(
                 title = "Arduino Micro Controller",
                 id = "HW-0019-A",
-                stock = 5,
                 status = EnuBorrowStatus.Dipinjam,
                 borrowDate = "16 Okt 26",
                 returnEstimate = "16 Okt 26",
@@ -232,7 +235,7 @@ fun EnuHistoryCardPreviewLight() {
             )
 
             EnuHistoryCard(
-                title = "", id = "", stock = 0,
+                title = "", id = "",
                 status = EnuBorrowStatus.Dipinjam,
                 borrowDate = "", returnEstimate = "",
                 onDetailClick = {},
@@ -253,7 +256,6 @@ fun EnuHistoryCardPreviewDark() {
             EnuHistoryCard(
                 title = "Arduino Micro Controller",
                 id = "HW-0019-A",
-                stock = 5,
                 status = EnuBorrowStatus.Dipinjam,
                 borrowDate = "16 Okt 26",
                 returnEstimate = "16 Okt 26",
@@ -261,7 +263,7 @@ fun EnuHistoryCardPreviewDark() {
             )
 
             EnuHistoryCard(
-                title = "", id = "", stock = 0,
+                title = "", id = "",
                 status = EnuBorrowStatus.Dipinjam,
                 borrowDate = "", returnEstimate = "",
                 onDetailClick = {},

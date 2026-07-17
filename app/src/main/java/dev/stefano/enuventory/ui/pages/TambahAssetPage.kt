@@ -1,5 +1,8 @@
 package dev.stefano.enuventory.ui.pages
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -11,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -27,7 +31,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -35,12 +38,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import dev.stefano.enuventory.R
+import dev.stefano.enuventory.domain.model.Category
+import dev.stefano.enuventory.ui.common.EnuErrorState
+import dev.stefano.enuventory.ui.common.UiState
 import dev.stefano.enuventory.ui.components.EnuBottomBar
 import dev.stefano.enuventory.ui.components.EnuBottomBarItemData
 import dev.stefano.enuventory.ui.components.EnuButton
@@ -49,34 +58,60 @@ import dev.stefano.enuventory.ui.components.EnuTextField
 import dev.stefano.enuventory.ui.components.EnuTopBar
 import dev.stefano.enuventory.ui.theme.EnuTheme
 
-enum class TambahAssetState {
-    Normal, Loading, Error
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TambahAssetPage(
-    state: TambahAssetState,
+    state: UiState<Unit>,
+    categories: List<Category>,
     currentRoute: String?,
     onBottomBarItemClick: (EnuBottomBarItemData) -> Unit,
     onBackClick: () -> Unit,
-    onAddPhotoClick: () -> Unit,
-    onTambahAssetClick: (title: String, stock: String, status: String, category: String, description: String) -> Unit,
+    onTambahAssetClick: (
+        title: String,
+        status: String,
+        category: String,
+        description: String,
+        imageBytes: ByteArray?
+    ) -> Unit,
+    onAddCategory: (name: String, onSuccess: (String) -> Unit) -> Unit,
+    onManageCategoriesClick: () -> Unit,
     onRetryClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var titleInput by remember { mutableStateOf("") }
-    var stockInput by remember { mutableStateOf("") }
     var descriptionInput by remember { mutableStateOf("") }
+    var validationError by remember { mutableStateOf<String?>(null) }
+
+    val context = LocalContext.current
+    var imageUri by remember { mutableStateOf<android.net.Uri?>(null) }
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        imageUri = uri
+    }
+
+    val bitmap = remember(imageUri) {
+        imageUri?.let { uri ->
+            try {
+                if (android.os.Build.VERSION.SDK_INT < 28) {
+                    android.provider.MediaStore.Images.Media.getBitmap(context.contentResolver, uri)
+                } else {
+                    val source = android.graphics.ImageDecoder.createSource(context.contentResolver, uri)
+                    android.graphics.ImageDecoder.decodeBitmap(source)
+                }
+            } catch (e: Exception) {
+                null
+            }
+        }
+    }
 
     var statusInput by remember { mutableStateOf("") }
     var isStatusDropdownExpanded by remember { mutableStateOf(false) }
-    val statusOptions = listOf("Tersedia", "Tidak Tersedia", "Maintenance")
+    val statusOptions = listOf("Tersedia", "Direservasi", "Maintenance")
 
     var categoryInput by remember { mutableStateOf("") }
     var showCategoryDialog by remember { mutableStateOf(false) }
     var newCategoryInput by remember { mutableStateOf("") }
-    val existingCategories = remember { mutableStateListOf("Elektro", "IoT", "Mekanik") }
 
     val borderColor = EnuTheme.colors.borderDefaultMedium
 
@@ -108,19 +143,19 @@ fun TambahAssetPage(
                             .heightIn(max = 160.dp)
                             .verticalScroll(rememberScrollState())
                     ) {
-                        existingCategories.forEach { cat ->
+                        categories.forEach { cat ->
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clickable {
-                                        categoryInput = cat
+                                        categoryInput = cat.name
                                         showCategoryDialog = false
                                     }
                                     .padding(vertical = 8.dp, horizontal = 4.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = cat,
+                                    text = cat.name,
                                     style = EnuTheme.typography.ui.labels.normalCase.base,
                                     color = EnuTheme.colors.contentDefaultPrimary
                                 )
@@ -140,13 +175,26 @@ fun TambahAssetPage(
                         text = "Tambah & Pilih Kategori",
                         onClick = {
                             if (newCategoryInput.isNotBlank()) {
-                                existingCategories.add(newCategoryInput.trim())
-                                categoryInput = newCategoryInput.trim()
+                                onAddCategory(newCategoryInput.trim()) { addedName ->
+                                    categoryInput = addedName
+                                }
                                 newCategoryInput = ""
                                 showCategoryDialog = false
                             }
                         },
                         modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Text(
+                        text = "Kelola Kategori",
+                        style = EnuTheme.typography.ui.labels.normalCase.small,
+                        color = EnuTheme.colors.contentBrandPrimaryDefault,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                showCategoryDialog = false
+                                onManageCategoriesClick()
+                            }
                     )
                 }
             }
@@ -171,46 +219,19 @@ fun TambahAssetPage(
         },
         containerColor = EnuTheme.colors.surfaceDefaultBase
     ) { innerPadding ->
-        if (state == TambahAssetState.Error) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-                    .padding(24.dp),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Icon(
-                    painter = painterResource(id = R.drawable.ic_error),
-                    contentDescription = null,
-                    tint = EnuTheme.colors.contentSignalErrorDefault,
-                    modifier = Modifier.size(56.dp)
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = "Terjadi Kesalahan",
-                    style = EnuTheme.typography.ui.labels.normalCase.large,
-                    color = EnuTheme.colors.contentDefaultPrimary
-                )
-                Text(
-                    text = "error log",
-                    style = EnuTheme.typography.ui.labels.normalCase.small,
-                    color = EnuTheme.colors.contentSignalErrorDefault,
-                    modifier = Modifier.padding(vertical = 4.dp)
-                )
-                Spacer(modifier = Modifier.height(24.dp))
-                EnuButton(
-                    text = "Coba lagi",
-                    onClick = onRetryClick,
-                    modifier = Modifier.fillMaxWidth(0.6f)
-                )
-            }
+        if (state is UiState.Error) {
+            EnuErrorState(
+                errorMessage = state.message,
+                onRetryClick = onRetryClick,
+                modifier = Modifier.padding(innerPadding)
+            )
         } else {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding)
                     .padding(horizontal = 24.dp)
+                    .imePadding()
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
@@ -220,41 +241,52 @@ fun TambahAssetPage(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(200.dp)
-                        .clickable { onAddPhotoClick() }
+                        .clickable { photoPickerLauncher.launch("image/*") }
                         .drawBehind {
-                            drawRoundRect(
-                                color = borderColor,
-                                style = Stroke(
-                                    width = 1.dp.toPx(),
-                                    pathEffect = PathEffect.dashPathEffect(
-                                        intervals = floatArrayOf(10f, 10f),
-                                        phase = 0f
+                            if (bitmap == null) {
+                                drawRoundRect(
+                                    color = borderColor,
+                                    style = Stroke(
+                                        width = 1.dp.toPx(),
+                                        pathEffect = PathEffect.dashPathEffect(
+                                            intervals = floatArrayOf(10f, 10f),
+                                            phase = 0f
+                                        )
                                     )
                                 )
-                            )
+                            }
                         },
                     contentAlignment = Alignment.Center
                 ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_camera),
+                    if (bitmap != null) {
+                        Image(
+                            bitmap = bitmap.asImageBitmap(),
                             contentDescription = null,
-                            modifier = Modifier.size(24.dp),
-                            tint = EnuTheme.colors.contentDefaultPrimary
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
                         )
-                        Text(
-                            text = "Add Photo",
-                            style = EnuTheme.typography.ui.labels.normalCase.large,
-                            color = EnuTheme.colors.contentDefaultPrimary
-                        )
-                        Text(
-                            text = "optional",
-                            style = EnuTheme.typography.ui.labels.normalCase.small,
-                            color = EnuTheme.colors.contentDefaultSubtle
-                        )
+                    } else {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_camera),
+                                contentDescription = null,
+                                modifier = Modifier.size(24.dp),
+                                tint = EnuTheme.colors.contentDefaultPrimary
+                            )
+                            Text(
+                                text = "Add Photo",
+                                style = EnuTheme.typography.ui.labels.normalCase.large,
+                                color = EnuTheme.colors.contentDefaultPrimary
+                            )
+                            Text(
+                                text = "optional",
+                                style = EnuTheme.typography.ui.labels.normalCase.small,
+                                color = EnuTheme.colors.contentDefaultSubtle
+                            )
+                        }
                     }
                 }
 
@@ -266,14 +298,6 @@ fun TambahAssetPage(
                     isRequired = true
                 )
 
-                EnuTextField(
-                    value = stockInput,
-                    onValueChange = { stockInput = it },
-                    placeholder = "Enter stock",
-                    label = "Stock",
-                    isRequired = true
-                )
-
                 Box(modifier = Modifier.fillMaxWidth()) {
                     EnuTextField(
                         value = statusInput,
@@ -282,14 +306,8 @@ fun TambahAssetPage(
                         label = "Status",
                         isRequired = true,
                         trailingIcon = R.drawable.ic_down,
-                        modifier = Modifier.clickable { isStatusDropdownExpanded = true }
-                    )
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp)
-                            .padding(top = 24.dp)
-                            .clickable { isStatusDropdownExpanded = true }
+                        readOnly = true,
+                        onClick = { isStatusDropdownExpanded = true }
                     )
                     DropdownMenu(
                         expanded = isStatusDropdownExpanded,
@@ -322,14 +340,9 @@ fun TambahAssetPage(
                         onValueChange = {},
                         placeholder = "Optional Category",
                         label = "Category",
-                        trailingIcon = R.drawable.ic_down
-                    )
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp)
-                            .padding(top = 24.dp)
-                            .clickable { showCategoryDialog = true }
+                        trailingIcon = R.drawable.ic_down,
+                        readOnly = true,
+                        onClick = { showCategoryDialog = true }
                     )
                 }
 
@@ -340,20 +353,46 @@ fun TambahAssetPage(
                     label = "Description"
                 )
 
+                if (validationError != null) {
+                    Text(
+                        text = validationError.orEmpty(),
+                        style = EnuTheme.typography.ui.labels.normalCase.small,
+                        color = EnuTheme.colors.contentSignalErrorDefault
+                    )
+                }
+
                 val buttonVariant =
-                    if (state == TambahAssetState.Loading) EnuButtonVariant.Loading else EnuButtonVariant.Normal
+                    if (state is UiState.Loading) EnuButtonVariant.Loading else EnuButtonVariant.Normal
 
                 EnuButton(
                     text = "Tambah Asset",
                     variant = buttonVariant,
                     onClick = {
-                        onTambahAssetClick(
-                            titleInput,
-                            stockInput,
-                            statusInput,
-                            categoryInput,
-                            descriptionInput
-                        )
+                        validationError = when {
+                            titleInput.isBlank() -> "Title wajib diisi"
+                            statusInput.isBlank() -> "Status wajib dipilih"
+                            else -> null
+                        }
+
+                        if (validationError == null) {
+                            val imageBytes = bitmap?.let { bmp ->
+                                java.io.ByteArrayOutputStream().use { stream ->
+                                    bmp.compress(
+                                        android.graphics.Bitmap.CompressFormat.JPEG,
+                                        80,
+                                        stream
+                                    )
+                                    stream.toByteArray()
+                                }
+                            }
+                            onTambahAssetClick(
+                                titleInput,
+                                statusInput,
+                                categoryInput,
+                                descriptionInput,
+                                imageBytes
+                            )
+                        }
                     },
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -369,12 +408,14 @@ fun TambahAssetPage(
 fun TambahAssetPagePreviewLight() {
     EnuTheme {
         TambahAssetPage(
-            state = TambahAssetState.Normal,
+            state = UiState.Success(Unit),
+            categories = emptyList(),
             currentRoute = "home",
             onBottomBarItemClick = {},
             onBackClick = {},
-            onAddPhotoClick = {},
             onTambahAssetClick = { _, _, _, _, _ -> },
+            onAddCategory = { _, _ -> },
+            onManageCategoriesClick = {},
             onRetryClick = {}
         )
     }
@@ -385,12 +426,14 @@ fun TambahAssetPagePreviewLight() {
 fun TambahAssetPagePreviewDark() {
     EnuTheme(darkTheme = true) {
         TambahAssetPage(
-            state = TambahAssetState.Loading,
+            state = UiState.Loading,
+            categories = emptyList(),
             currentRoute = "home",
             onBottomBarItemClick = {},
             onBackClick = {},
-            onAddPhotoClick = {},
             onTambahAssetClick = { _, _, _, _, _ -> },
+            onAddCategory = { _, _ -> },
+            onManageCategoriesClick = {},
             onRetryClick = {}
         )
     }

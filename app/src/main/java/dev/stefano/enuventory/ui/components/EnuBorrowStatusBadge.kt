@@ -16,7 +16,7 @@ import androidx.compose.ui.unit.dp
 import dev.stefano.enuventory.ui.theme.EnuTheme
 
 enum class EnuBorrowStatus {
-    Dipinjam, Menunggu, Ditolak, Selesai
+    Dipinjam, Menunggu, MenungguPengambilan, Ditolak, Selesai, Rusak, Terlambat
 }
 
 @Composable
@@ -41,6 +41,12 @@ fun EnuBorrowStatusBadge(
             labelText = "MENUNGGU"
         }
 
+        EnuBorrowStatus.MenungguPengambilan -> {
+            backgroundColor = EnuTheme.colors.backgroundSignalWarningMediumDefault
+            contentColor = EnuTheme.colors.contentSignalWarningOnSubtle
+            labelText = "MENUNGGU PENGAMBILAN"
+        }
+
         EnuBorrowStatus.Ditolak -> {
             backgroundColor = EnuTheme.colors.backgroundSignalErrorMediumDefault
             contentColor = EnuTheme.colors.contentSignalErrorOnSubtle
@@ -51,6 +57,18 @@ fun EnuBorrowStatusBadge(
             backgroundColor = EnuTheme.colors.backgroundSignalSuccessMediumDefault
             contentColor = EnuTheme.colors.contentSignalSuccessOnSubtle
             labelText = "SELESAI"
+        }
+
+        EnuBorrowStatus.Rusak -> {
+            backgroundColor = EnuTheme.colors.backgroundSignalErrorMediumDefault
+            contentColor = EnuTheme.colors.contentSignalErrorOnSubtle
+            labelText = "RUSAK"
+        }
+
+        EnuBorrowStatus.Terlambat -> {
+            backgroundColor = EnuTheme.colors.backgroundSignalErrorMediumDefault
+            contentColor = EnuTheme.colors.contentSignalErrorOnSubtle
+            labelText = "TERLAMBAT"
         }
     }
 

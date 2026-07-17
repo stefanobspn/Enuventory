@@ -22,9 +22,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import dev.stefano.enuventory.R
+import dev.stefano.enuventory.domain.model.AppThemeMode
 import dev.stefano.enuventory.ui.theme.EnuTheme
-
-enum class AppThemeMode { Light, Dark, System }
 
 @Composable
 fun EnuThemeSelector(
@@ -44,17 +43,17 @@ fun EnuThemeSelector(
     ) {
         AppThemeMode.entries.forEach { mode ->
             val isSelected = selectedMode == mode
+            val isEnabled = mode != AppThemeMode.Dark
 
             val iconRes = when (mode) {
                 AppThemeMode.Light -> R.drawable.ic_sun
                 AppThemeMode.Dark -> R.drawable.ic_moon
-                AppThemeMode.System -> R.drawable.ic_phone
             }
 
-            val contentColor = if (isSelected) {
-                EnuTheme.colors.contentBrandPrimaryDefault
-            } else {
-                EnuTheme.colors.contentDefaultSubtle
+            val contentColor = when {
+                !isEnabled -> EnuTheme.colors.contentDefaultSubtle.copy(alpha = 0.4f)
+                isSelected -> EnuTheme.colors.contentBrandPrimaryDefault
+                else -> EnuTheme.colors.contentDefaultSubtle
             }
 
             Box(
@@ -66,7 +65,8 @@ fun EnuThemeSelector(
                     )
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
-                        indication = null
+                        indication = null,
+                        enabled = isEnabled
                     ) { onModeSelected(mode) }
                     .padding(vertical = 12.dp),
                 contentAlignment = Alignment.Center
